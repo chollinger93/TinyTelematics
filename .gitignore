@@ -1,0 +1,16 @@
+target
+auth.properties
+config.properties
+hbase-site.xml
+*.iml
+.idea
+.DS_Store
+dependency-reduced-pom.xml
+*.csv
+*derby*
+*metastore*
+spark-warehouse
+hive-site.xml
+*.properties
+npm-debug.log
+nodejs
