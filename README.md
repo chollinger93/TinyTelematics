@@ -4,18 +4,18 @@ A telematics showcase for my blog.
 ## The Hadoop Way
 The original article used Spark, Hive, and Zeppelin to process the data and can be found [here](https://chollinger.com/blog/2017/03/tiny-telematics-with-spark-and-zeppelin/).
 
-![Hadoop Architecture][./docs/hadoop-arch.png]
+![Hadoop Architecture][https://raw.githubusercontent.com/otter-in-a-suit/TinyTelematics/master/docs/hadoop-arch.png]
 
-![Zeppelin][./docs/zeppelin.jpg]
+![Zeppelin][https://raw.githubusercontent.com/otter-in-a-suit/TinyTelematics/master/docs/zeppelin.jpg]
 
 ## The AWS Way
 The "new" way is using AWS with IoT Greengrass, Kinesis Firehose, Lambda, Athena, and QuickSight and can be found [here](https://chollinger.com/blog/2019/08/how-i-built-a-tiny-real-time-telematics-application-on-aws/).
 
 It depends on a physical GPS dongle, as it uses the `gps` Kernel module.
 
-![AWS Architecture][./docs/aws-arch.png]
+![AWS Architecture][https://raw.githubusercontent.com/otter-in-a-suit/TinyTelematics/master/docs/aws-arch.png]
 
-![AWS Architecture][./docs/aws-visual.png]
+![AWS Architecture][https://raw.githubusercontent.com/otter-in-a-suit/TinyTelematics/master/docs/aws-visual.png]
 
 # AWS Setup
 Please see the blog article for AWS details.
