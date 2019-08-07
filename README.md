@@ -13,6 +13,7 @@ The "new" way is using AWS with IoT Greengrass, Kinesis Firehose, Lambda, Athena
 
 It depends on a physical GPS dongle, as it uses the `gps` Kernel module.
 
+
 ![AWS Architecture](./docs/aws-arch.png)
 
 ![AWS Architecture](./docs/aws-visual.png)
