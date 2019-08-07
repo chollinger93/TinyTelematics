@@ -2,6 +2,7 @@ from gps import *
 import greengrasssdk
 import platform
 import json
+import uuid
 
 
 class Record:
@@ -11,6 +12,7 @@ class Record:
         self.altitude = altitude
         self.timestamp = timestamp
         self.speed = speed
+        self.id = hex(uuid.getnode())
 
     def __str__(self):
         return str(json.dumps(self.__dict__))
@@ -25,6 +27,7 @@ def push_to_iot_core(records):
     data = json.dumps(records)
     print(data)
     client.publish(topic='telematics/raw', payload=data)
+
 
 def poll_gps(_gpsd, batch=128):
     print('Starting GPS poll, batch: {}'.format(batch))
