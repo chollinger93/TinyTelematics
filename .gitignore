@@ -18,7 +18,8 @@ venv
 *package*
 function.zip
 v-env
-
+aws/data
+*statesp010g*
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
