@@ -16,6 +16,8 @@ The original article used Spark, Hive, and Zeppelin to process the data and can 
 
 ![Zeppelin](./docs/zeppelin.jpg)
 
+The associated branch for hadoop is `hadoop`.
+
 ## The AWS Way
 The "new" way is using AWS with IoT Greengrass, Kinesis Firehose, Lambda, Athena, and QuickSight and can be found [here](https://chollinger.com/blog/2019/08/how-i-built-a-tiny-real-time-telematics-application-on-aws/).
 
@@ -25,6 +27,8 @@ It depends on a physical GPS dongle, as it uses the `gps` Kernel module.
 ![AWS Architecture](./docs/aws-arch.png)
 
 ![AWS Architecture](./docs/aws-visual.png)
+
+The associated branch for AWS is `master`.
 
 # AWS Setup
 Please see the blog article for AWS details.
@@ -36,20 +40,6 @@ Please see `lambda/telematics-input/deploy_venv.sh` for the deployment script.
 
 ## GPSD
 Please see `sbin/setup_gps.sh` for the GPS setup. Mileage will vary depending on your distribution.
-
-# Hadoop Setup
-You will need Hive, Spark, Zeppelin, HDFS, Yarn, and Zookeeper.
-
-## Compile Spark
-```
-cd spark
-sbt build
-sbt package
-spark-submit --files hive-site.xml --jars mysql-connector-java-5.1.40-bin.jar ./target/scala-2.10/TinyTelematics_2.10-1.0.jar
-```
-
-## Zeppelin
-Import `zepppelin/telematics.json`
 
 ## License
 This project is licensed under the GNU GPLv3 License - see the [LICENSE](LICENSE) file for details.

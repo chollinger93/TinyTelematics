@@ -19,6 +19,7 @@ venv
 function.zip
 v-env
 aws/data
+data
 *statesp010g*
 # Byte-compiled / optimized / DLL files
 __pycache__/
