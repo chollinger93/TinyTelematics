@@ -5,6 +5,8 @@ The project collects data from a driver and generates reports and dashboards.
 
 The project is split into 2 logical elements: `Hadoop` and `AWS`. The below sections explain the differences.
 
+**As the project is split into 2 logical elements, please see below for specific branch names**
+
 The `Hadoop` way uses batch processing and relies on [SensorLog](https://apps.apple.com/us/app/sensorlog/id388014573), an iOS app. Other than that, it is entirely based on Open Source.
 
 The `AWS` way is vendor-locked to AWS (to a degree), but processes data in real-time. It relies on a physical GPS dongle.
