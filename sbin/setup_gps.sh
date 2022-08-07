@@ -14,7 +14,7 @@ GPSD=/etc/default/gpsd
 cp ${GPSD} /etc/default/gpsd.bkp
 
 # kill
-kilall gpsd
+killall gpsd
 rm -f /var/run/gpsd.sock
 
 # Source and check
