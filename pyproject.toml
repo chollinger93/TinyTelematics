@@ -1,0 +1,18 @@
+[tool.poetry]
+name = "tiny-telematics"
+version = "0.1.0"
+description = ""
+authors = ["Christian Hollinger <christian@chollinger.com>"]
+
+[tool.poetry.dependencies]
+python = "^3.10"
+gps = "^3.19"
+
+[tool.poetry.dev-dependencies]
+pytest = "^5.2"
+black = "^22.6.0"
+mypy = "^0.971"
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
