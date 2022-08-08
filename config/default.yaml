@@ -6,6 +6,8 @@ general:
   shutdown_timer_s: 300
   # Buffer until we flush to redis
   cache_buffer: 10
+  # Ignore records with lat/long 0.0/0.0
+  filter_empty_records: true
 
 cache:
   # Redis settings

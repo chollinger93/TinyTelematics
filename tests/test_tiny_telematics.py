@@ -61,6 +61,20 @@ class TestGPS:
         assert r.lat == 10.0
         assert r.lon == -10.0
 
+    @mock.patch('gps.gps')
+    def test_filter_empty(self, gps_client):
+        data = {
+            'lat': 0.0,
+            'lon': 0.0,
+            'altitude': 0,
+            'speed': 39.3395,
+            'class': 'TPV',
+        }
+        gps_client.next.return_value = dictwrapper(data)
+        r = poll_gps(gps_client, do_filter_empty_records=True)
+        assert r is None
+
+
     def test_calculate_distance_in_m(self):
         newport_ri = GpsRecord(41.49008, -71.312796, 0, 0)
         cleveland_oh = GpsRecord(41.499498, -81.695391, 0, 0)

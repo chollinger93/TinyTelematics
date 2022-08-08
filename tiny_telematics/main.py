@@ -30,12 +30,12 @@ class GpsRecord:
         lon: float,
         altitude: float,
         speed: float,
-        timestamp=datetime.now(),
+        timestamp: float = time.time(),
     ):
         self.lat = lat
         self.lon = lon
         self.altitude = altitude
-        self.timestamp = timestamp.timestamp
+        self.timestamp = timestamp
         self.speed = speed
         self.id = hex(uuid.getnode())
 
@@ -50,6 +50,7 @@ class GeneralConfig:
     expected_wifi_network: str
     shutdown_timer_s: int = 10
     cache_buffer: int = 10
+    filter_empty_records: bool = False
 
 @dataclass
 class CacheConfig:
@@ -73,7 +74,7 @@ T = TypeVar("T")
 NonEmptyGpsRecordList = NewType("NonEmptyGpsRecordList", List[GpsRecord])
 
 
-def poll_gps(gps_client: GpsClient) -> Optional[GpsRecord]:
+def poll_gps(gps_client: GpsClient, do_filter_empty_records=False) -> Optional[GpsRecord]:
     """Poll the GPS sensor for a record
 
     Args:
@@ -93,7 +94,10 @@ def poll_gps(gps_client: GpsClient) -> Optional[GpsRecord]:
                 lon = report.get("lon", 0.0)
                 altitude = report.get("alt", 0.0)
                 speed = report.get("speed", 0.0)
-                r = GpsRecord(lat, lon, altitude, speed, datetime.now()) # TODO: filter 0.0
+                if do_filter_empty_records and (lat == 0.0  or lon == 0.0):
+                    logger.warning('Empty record, filtering')
+                    return None
+                r = GpsRecord(lat, lon, altitude, speed) # TODO: filter 0.0
                 logger.debug('Point: %s', r.to_json())
                 return r
         except KeyError as e:
@@ -195,7 +199,8 @@ def main(
     expected_network: str,
     buffer_size=10,
     max_no_movement_s=300,
-    wait_time_s=1
+    wait_time_s=1,
+    do_filter_empty_records=False
 ) -> None:
     ring_buffer: deque[GpsRecord] = deque(maxlen=max_no_movement_s)
     _buffer: NonEmptyGpsRecordList = NonEmptyGpsRecordList([])
@@ -222,7 +227,7 @@ def main(
             _buffer = NonEmptyGpsRecordList([])
         else:
             logger.debug('Polling GPS (buffer: %s)', len(_buffer))
-            record = poll_gps(gps_client)
+            record = poll_gps(gps_client, do_filter_empty_records)
             if record:
                 _buffer.append(record)
                 ring_buffer.extend([record])
@@ -259,7 +264,7 @@ if __name__ == "__main__":
 
     # Main loop
     logger.info('Starting...')
-    logger.debug('Config: %s', config)
+    logger.info('Config: %s', config)
     main(
             gps_client=gpsd,
             redis_client=redis_client,
@@ -268,5 +273,6 @@ if __name__ == "__main__":
             expected_network=config.general.expected_wifi_network,
             buffer_size=config.general.cache_buffer,
             max_no_movement_s=config.general.shutdown_timer_s,
-            wait_time_s=1
+            wait_time_s=1,
+            do_filter_empty_records=config.general.filter_empty_records
         )

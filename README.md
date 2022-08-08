@@ -25,6 +25,12 @@ poetry install
 poetry run pytest tests -v  
 ```
 
+## Run
+
+```bash
+python3 tiny_telematics/main.py --config config/dev.yaml
+```
+
 ## GPSD
 
 ### Setup
