@@ -6,8 +6,8 @@ if [[ -z $SUDO_USER ]]; then
 fi
 
 # Install dependencies
-apt-get update
-apt-get install gpsd gpsd-clients python-gps ntp
+#apt-get update
+apt-get install gpsd gpsd-clients gpsd-tools ntp
 
 # Backup
 GPSD=/etc/default/gpsd

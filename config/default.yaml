@@ -1,0 +1,19 @@
+---
+general:
+  # Expected WiFi network
+  expected_wifi_network: MyHomeWiFi
+  # Time until the application shuts down
+  shutdown_timer_s: 300
+  # Buffer until we flush to redis
+  cache_buffer: 10
+
+cache:
+  # Redis settings
+  host: localhost
+  port: 6379
+  db: 0
+
+kafka:
+  # Kafka broker, once on WiFi
+  boostrap_servers: localhost:19092
+  topic: MyTopic

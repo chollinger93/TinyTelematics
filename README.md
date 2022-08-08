@@ -5,6 +5,14 @@ A (tiny) Telematics solution I built over the years in three different iteration
 ## Setup
 
 ```bash
+# Install poetry
+curl -sSL https://raw.githubusercontent.com/python-poetry/poetry/master/get-poetry.py | python -
+# Install an appropriate python version
+curl https://pyenv.run | bash
+echo 'export PYENV_ROOT="$HOME/.pyenv"' >> ~/.bashrc
+echo 'command -v pyenv >/dev/null || export PATH="$PYENV_ROOT/bin:$PATH"' >> ~/.bashrc
+echo 'eval "$(pyenv init -)"' >> ~/.bashrc
+
 pyenv install 3.8.13
 poetry env use ~/.pyenv/versions/3.8.13/bin/python3
 poetry shell
@@ -29,6 +37,8 @@ The `gps` package is only compatible with `Python 3.8`, because `3.9` removed th
 ```bash
 TypeError: JSONDecoder.__init__() got an unexpected keyword argument 'encoding'
 ```
+
+This is, however, *not* the fault of the maintainers of `gpsd`, see the issue [here](https://gitlab.com/gpsd/gpsd/-/issues/122), since they do not maintain the `pip` project (or any binaries for that matter). If you can, build it from scratch.
 
 #### ipv6 loopback needs to be enabled
 
