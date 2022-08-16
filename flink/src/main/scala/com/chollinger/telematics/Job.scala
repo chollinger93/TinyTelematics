@@ -14,19 +14,17 @@ import com.chollinger.telematics.model.GpsModel.GpsPoint._
 import io.circe
 import io.circe.{Decoder, Encoder, jawn}
 import org.apache.flink.api.common.typeinfo.TypeInformation
+import org.apache.flink.streaming.api.datastream.DataStreamSink
 import org.apache.flink.util.Collector
 import org.apache.kafka.clients.consumer.{ConsumerRecord, OffsetResetStrategy}
 
 object Job {
 
-  def buildSource[A](
+  def buildSource[A: Decoder](
       bootstrapServers: String,
       topics: String,
       groupId: String
-  )(implicit
-      deserializer: Decoder[A],
-      typeInfo: TypeInformation[A]
-  ): KafkaSource[A] = {
+  )(implicit typeInfo: TypeInformation[A]): KafkaSource[A] = {
     KafkaSource
       .builder[A]
       .setBootstrapServers(bootstrapServers)
@@ -69,7 +67,10 @@ object Job {
       WatermarkStrategy.noWatermarks(), // TODO: wats
       "Kafka Source"
     )
-    data.print()
+    // Print for testing
+    val p: DataStreamSink[GpsPoint] = data.print()
+    // Write to Iceberg
+
     // execute program
     env.execute("Telematics v3")
   }

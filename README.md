@@ -22,12 +22,14 @@ poetry install
 ## Test
 
 ```bash
+poetry shell
 poetry run pytest tests -v  
 ```
 
 ## Run
 
 ```bash
+poetry shell
 python3 tiny_telematics/main.py --config config/dev.yaml
 ```
 
@@ -35,6 +37,12 @@ python3 tiny_telematics/main.py --config config/dev.yaml
 
 ### Setup
 Please see `sbin/setup_gps.sh` for the GPS setup. Mileage will vary depending on your distribution.
+
+For `redis`, you may use:
+
+```bash
+docker run -d --name redis-stack -p 6379:6379 -p 8001:8001 redis/redis-stack:latest
+```
 
 #### Version Trouble
 

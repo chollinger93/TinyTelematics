@@ -23,21 +23,15 @@ import yaml
 
 # Model (also types)
 REDIS_KEY = 'buffer'
+
+@dataclass
 class GpsRecord:
-    def __init__(
-        self,
-        lat: float,
-        lon: float,
-        altitude: float,
-        speed: float,
-        timestamp: float = time.time(),
-    ):
-        self.lat = lat
-        self.lon = lon
-        self.altitude = altitude
-        self.timestamp = timestamp
-        self.speed = speed
-        self.id = hex(uuid.getnode())
+    lat: float
+    lon: float
+    altitude: float
+    speed: float
+    timestamp: float = time.time()
+    id: str = hex(uuid.getnode())
 
     def __str__(self):
         return str(json.dumps(self.__dict__))
