@@ -149,3 +149,5 @@ dmypy.json
 # Custom
 config/*
 !config/default.yaml
+# temporarily
+*docker-compose*

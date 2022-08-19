@@ -30,8 +30,8 @@ class GpsRecord:
     lon: float
     altitude: float
     speed: float
-    timestamp: float = time.time()
-    id: str = hex(uuid.getnode())
+    timestamp: int = int(time.time() * 1000)
+    userId: int = uuid.getnode()
 
     def __str__(self):
         return str(json.dumps(self.__dict__))
@@ -82,7 +82,7 @@ def poll_gps(gps_client: GpsClient, do_filter_empty_records=False) -> Optional[G
             report = gps_client.next()
             # TPV - Time Position Velocity
             # Returns a dictwrapper with various readings; we only need TPV
-            if report["class"] == "TPV":
+            if report['class'] == "TPV":
                 # Get data
                 lat = report.get("lat", 0.0)
                 lon = report.get("lon", 0.0)
@@ -94,7 +94,10 @@ def poll_gps(gps_client: GpsClient, do_filter_empty_records=False) -> Optional[G
                 r = GpsRecord(lat, lon, altitude, speed) # TODO: filter 0.0
                 logger.debug('Point: %s', r.to_json())
                 return r
+            else:
+                logger.debug('Class is %s, skipping', report)
         except KeyError as e:
+            logger.debug('KeyError: %s', e)
             # this happens
             continue
 
@@ -147,7 +150,7 @@ def publish_data(producer: KafkaProducer, topic: str, record: GpsRecord) -> None
     logger.debug('Publishing record: %s', record.to_json())
     producer.send(
         topic,
-        key=record.id.encode("utf-8"),
+        key=str(record.userId).encode("utf-8"),
         value=jsonpickle.encode(record).encode("utf-8"),
     )
 

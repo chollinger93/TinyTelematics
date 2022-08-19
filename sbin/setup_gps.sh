@@ -1,5 +1,9 @@
 #!/bin/bash
 
+if [[ $UID -eq 0 ]]; then
+	SUDO_USER=0
+fi
+
 if [[ -z $SUDO_USER ]]; then
 	echo "Script must be called as sudo"
 	exit 1
@@ -9,7 +13,7 @@ fi
 if [[ -z $(dpkg -s gpsd) ]]; then 
 	echo "Installing dependencies"
 	apt-get update
-	apt-get install gpsd gpsd-clients gpsd-tools ntp
+	apt-get install gpsd gpsd-clients ntp wireless-tools -y #gpsd-tools
 fi
 
 # Backup

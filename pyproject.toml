@@ -5,7 +5,7 @@ description = ""
 authors = ["Christian Hollinger <christian@chollinger.com>"]
 
 [tool.poetry.dependencies]
-python = "3.8.13"
+python = "^3.8"
 gps = "^3.19"
 redis = "^4.3.4"
 kafka-python = "^2.0.2"
