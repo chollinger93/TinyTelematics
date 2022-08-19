@@ -11,18 +11,21 @@ organization := "org.example"
 
 ThisBuild / scalaVersion := "2.12.16"
 
-val flinkVersion = "1.14.0"
+val flinkVersion = "1.14.5"
 
 val flinkDependencies = Seq(
   "org.apache.flink" %% "flink-scala"           % flinkVersion % "provided",
   "org.apache.flink" %% "flink-streaming-scala" % flinkVersion % "provided",
-  "org.apache.flink" %% "flink-clients"         % flinkVersion % "provided"
+  "org.apache.flink" %% "flink-clients"         % flinkVersion % "provided",
+  "org.apache.flink" %% "flink-connector-kafka" % flinkVersion,
+  "org.apache.flink" %% "flink-connector-jdbc"  % flinkVersion //% "provided"
 )
 libraryDependencies ++= Seq(
-  "org.apache.flink" % "flink-connector-kafka" % "1.15.1",
-  "io.estatico"     %% "newtype"               % "0.4.4",
-  "tf.tofu"          % "derevo-core_2.12"      % "0.13.0",
-  "tf.tofu"         %% "derevo-circe"          % "0.13.0",
+  "io.estatico"           %% "newtype"             % "0.4.4",
+  "tf.tofu"                % "derevo-core_2.12"    % "0.13.0",
+  "tf.tofu"               %% "derevo-circe"        % "0.13.0",
+  "com.github.pureconfig" %% "pureconfig"          % "0.17.1",
+  "org.mariadb.jdbc"       % "mariadb-java-client" % "3.0.7",
   // Tests
   "org.scalactic" %% "scalactic"          % "3.2.10",
   "org.scalatest" %% "scalatest"          % "3.2.10" % Test,
