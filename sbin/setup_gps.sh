@@ -1,5 +1,9 @@
 #!/bin/bash
 
+is_installed() {
+     dpkg --verify "$1" 2>/dev/null
+}
+
 if [[ $UID -eq 0 ]]; then
 	SUDO_USER=0
 fi
@@ -10,10 +14,10 @@ if [[ -z $SUDO_USER ]]; then
 fi
 
 # Install dependencies
-if [[ -z $(dpkg -s gpsd) ]]; then 
+if ! is_installed "gpsd" ; then 
 	echo "Installing dependencies"
 	apt-get update
-	apt-get install gpsd gpsd-clients ntp wireless-tools -y #gpsd-tools
+	apt-get install gpsd gpsd-clients ntp wireless-tools gpsd-tools psmisc -y
 fi
 
 # Backup
@@ -54,3 +58,4 @@ echo "Starting service"
 service gpsd restart
 # Manual
 #gpsd /dev/ttyACM0 -F /var/run/gpsd.sock
+ps aux | grep gpsd

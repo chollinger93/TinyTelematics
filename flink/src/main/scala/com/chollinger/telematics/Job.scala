@@ -6,9 +6,10 @@ import com.chollinger.telematics.model.GpsModel.GpsPoint
 import com.chollinger.telematics.model.GpsModel.GpsPoint._
 import io.circe.Encoder
 import org.apache.flink.api.common.eventtime.WatermarkStrategy
-import org.apache.flink.connector.jdbc.{JdbcConnectionOptions, JdbcExecutionOptions, JdbcSink}
 import org.apache.flink.streaming.api.datastream.DataStreamSink
 import org.apache.flink.streaming.api.scala.{DataStream, StreamExecutionEnvironment}
+
+import java.time.{Duration => JDuration}
 
 object Job {
 
@@ -24,7 +25,7 @@ object Job {
     implicit val encoder: Encoder[GpsPoint] = implicitly
     val data: DataStream[GpsPoint] = env.fromSource(
       buildSource[GpsPoint](config.kafka),
-      WatermarkStrategy.forMonotonousTimestamps(),
+      WatermarkStrategy.forBoundedOutOfOrderness(JDuration.ofSeconds(10)),
       "Kafka Source"
     )
     // Print for testing

@@ -17,7 +17,7 @@ object Sinks {
       GpsPoint.statement,
       JdbcExecutionOptions
         .builder()
-        .withBatchSize(1000)
+        .withBatchSize(100)
         .withBatchIntervalMs(200)
         .withMaxRetries(5)
         .build(),

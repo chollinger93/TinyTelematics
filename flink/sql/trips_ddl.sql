@@ -1,8 +1,8 @@
 CREATE DATABASE telematics;
 
 CREATE TABLE telematics.trips (
-	`id` INT NOT NULL AUTO_INCREMENT,
-	`userId` INT NOT NULL,
+	`id` BIGINT NOT NULL AUTO_INCREMENT,
+	`userId` BIGINT NOT NULL,
 	`lat` DOUBLE,
 	`lon` DOUBLE,
 	`altitude` DOUBLE,

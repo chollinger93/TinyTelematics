@@ -1,4 +1,4 @@
-FROM python:3.8-buster
+FROM python:3.8-bullseye
 
 VOLUME /config
 
@@ -10,6 +10,10 @@ COPY poetry.lock .
 
 # Deps
 RUN ./setup_gps.sh
+# For crypography/poetry, we need the Rust compiler for ARM
+RUN apt-get update 
+RUN apt-get install cargo -y
+RUN pip install --upgrade pip
 RUN pip install poetry==1.1.14
 # Build
 RUN poetry build

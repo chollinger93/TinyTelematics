@@ -15,7 +15,15 @@ Easiest route. Make sure you expose your host network & the appropriate device i
 docker-compose up -d
 # Build and run
 docker build -t tiny-telematics .
-docker run -v $(pwd)/config:/config --device=/dev/ttyACM0 --net=host tiny-telematics --config /config/default.yaml
+docker run -v $(pwd)/config:/config --device=/dev/ttyACM0 --net=host --restart=on-failure:5 tiny-telematics --config /config/default.yaml
+```
+
+If you want to build a multi-arch image for a Raspi:
+
+```bash
+❯ docker buildx create --name cross
+❯ docker buildx use cross
+❯ docker buildx build --platform linux/amd64,linux/arm/v6 -t tiny-telematics:latest .
 ```
 
 ### Development / Bare Metal Deploy

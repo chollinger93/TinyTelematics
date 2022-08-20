@@ -33,7 +33,7 @@ object GpsModel {
   object GpsPoint {
     implicit val typeInfo: TypeInformation[GpsPoint] = TypeInformation.of(classOf[GpsPoint])
     val query: String =
-      "insert into trips (userId, lat, lon, altitude, speed, timestamp, updated_at) values (?, ?, ?, ?, ?, ?, ? )"
+      "insert into trips (userId, lat, lon, altitude, speed, ts, updated_at) values (?, ?, ?, ?, ?, ?, ? )"
     // noinspection ConvertExpressionToSAM
     // Otherwise: Caused by: java.io.NotSerializableException: Non-serializable lambda
     def statement: JdbcStatementBuilder[GpsPoint] = {

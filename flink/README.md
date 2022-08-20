@@ -15,6 +15,14 @@ FLUSH PRIVILEGES;
 
 Run DDL in [sql/trips_ddl.sql](trips_ddl.sql)`
 
+## Scala
+```bash
+# SDKMan is cool
+sdk install scala 2.12.16
+sdk use scala 2.12.16
+sdk install sbt
+```
+
 ## Run
 ```bash
 export BOOTSTRAP_SERVERS="$SERVER:19092"
