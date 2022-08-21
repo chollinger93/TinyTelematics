@@ -7,9 +7,11 @@ After=redis.target
 [Service]
 Type=simple
 User=telematics
-ExecStart=/home/telematics/TinyTelematics/run_client.sh
+ExecStart=/home/telematics/TinyTelematics/sbin/run_client.sh
 RestartSec=5s
 Restart=always
+StandardOutput=append:/var/log/telematics/out.log
+StandardError=append:/var/log/telematics/err.log 
 
 [Install]
 WantedBy=multi-user.target
