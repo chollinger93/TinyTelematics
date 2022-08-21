@@ -151,3 +151,4 @@ config/*
 !config/default.yaml
 # temporarily
 *docker-compose*
+buildkitd.toml

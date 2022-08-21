@@ -26,12 +26,14 @@ REDIS_KEY = 'buffer'
 
 @dataclass
 class GpsRecord:
+    tripId: int
     lat: float
     lon: float
     altitude: float
     speed: float
     timestamp: int = int(time.time() * 1000)
     userId: int = uuid.getnode()
+    
 
     def __str__(self):
         return str(json.dumps(self.__dict__))
@@ -68,7 +70,7 @@ T = TypeVar("T")
 NonEmptyGpsRecordList = NewType("NonEmptyGpsRecordList", List[GpsRecord])
 
 
-def poll_gps(gps_client: GpsClient, do_filter_empty_records=False) -> Optional[GpsRecord]:
+def poll_gps(gps_client: GpsClient, trip_id: int, do_filter_empty_records=False) -> Optional[GpsRecord]:
     """Poll the GPS sensor for a record
 
     Args:
@@ -91,7 +93,7 @@ def poll_gps(gps_client: GpsClient, do_filter_empty_records=False) -> Optional[G
                 if do_filter_empty_records and (lat == 0.0  or lon == 0.0):
                     logger.warning('Empty record, filtering')
                     return None
-                r = GpsRecord(lat, lon, altitude, speed) # TODO: filter 0.0
+                r = GpsRecord(trip_id, lat, lon, altitude, speed) # TODO: filter 0.0
                 logger.debug('Point: %s', r.to_json())
                 return r
             else:
@@ -201,6 +203,9 @@ def main(
 ) -> None:
     ring_buffer: deque[GpsRecord] = deque(maxlen=max_no_movement_s)
     _buffer: NonEmptyGpsRecordList = NonEmptyGpsRecordList([])
+    # Generate a unique ID. We'll terminate otherwise
+    trip_id = uuid.uuid4().int
+    logger.info('Using tripId %s', trip_id)
     while True:
         # Flush data when you can
         if is_network_available(expected_network):
@@ -224,7 +229,7 @@ def main(
             _buffer = NonEmptyGpsRecordList([])
         else:
             logger.debug('Polling GPS (buffer: %s)', len(_buffer))
-            record = poll_gps(gps_client, do_filter_empty_records)
+            record = poll_gps(gps_client, trip_id, do_filter_empty_records)
             if record:
                 _buffer.append(record)
                 ring_buffer.extend([record])
