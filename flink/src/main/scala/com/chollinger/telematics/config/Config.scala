@@ -9,5 +9,12 @@ object Config {
   final case class KafkaConfig(bootstrapServers: String, topics: String, groupId: String)
   final case class JdbcConfig(url: String, driverName: String, user: String, password: String)
 
-  def loadConfig(): Either[ConfigReaderFailures, Config] = ConfigSource.default.load[Config]
+  sealed trait Environment
+  case object Local      extends Environment
+  case object Production extends Environment
+  def loadConfig(): Either[ConfigReaderFailures, Config] = sys.env.get("RUN_LOCALLY") match {
+    case Some(_) => ConfigSource.default.load[Config]
+    case _       => ConfigSource.resources("production.conf").load[Config]
+  }
+
 }

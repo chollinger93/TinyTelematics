@@ -59,3 +59,4 @@
 local.sbt
 jitwatch.out
 /.bsp
+production.conf

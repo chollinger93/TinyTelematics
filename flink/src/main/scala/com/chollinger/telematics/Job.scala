@@ -15,7 +15,7 @@ object Job {
 
   def main(args: Array[String]): Unit = {
     // Require a streaming environment
-    val env = StreamExecutionEnvironment.createLocalEnvironment()
+    val env = StreamExecutionEnvironment.getExecutionEnvironment
     // Load config
     val config = Config.loadConfig() match {
       case Right(c) => c

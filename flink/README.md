@@ -25,11 +25,16 @@ sdk install sbt
 
 ## Run
 ```bash
-export BOOTSTRAP_SERVERS="$SERVER:19092"
-export TOPICS="topic"
-export GROUP_ID="flink-telematics"
-export JDBC_URL=jdbc:mariadb://$SERVER:3306/telematics
-export JDBC_DRIVER=org.mariadb.jdbc.Driver
-export JDBC_USER=telematics
- JDBC_PW=$PASSWORD sbt run
+export RUN_LOCALLY=1
+ JDBC_USER=telematics JDBC_PW=$PASSWORD sbt run
+```
+## Submit
+Create a `src/main/resources/production.conf` first.
+
+```bash
+sbt clean assembly
+flink run \
+      --detached \
+      --jobmanager bigiron.lan:8082 \
+      ./target/scala-2.12/TinyTelematics-assembly-0.1.jar
 ```

@@ -3,11 +3,11 @@ ThisBuild / resolvers ++= Seq(
   Resolver.mavenLocal
 )
 
-name := "Flink Project"
+name := "TinyTelematics"
 
-version := "0.1-SNAPSHOT"
+version := "0.1"
 
-organization := "org.example"
+organization := "com.chollinger"
 
 ThisBuild / scalaVersion := "2.12.16"
 
@@ -42,7 +42,7 @@ lazy val root = (project in file(".")).settings(
   libraryDependencies ++= flinkDependencies
 )
 
-assembly / mainClass := Some("org.example.Job")
+assembly / mainClass := Some("com.chollinger.telematics.Job")
 
 // make run command include the provided dependencies
 Compile / run := Defaults
