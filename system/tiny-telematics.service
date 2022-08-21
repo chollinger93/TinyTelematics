@@ -1,0 +1,15 @@
+[Unit]
+Description=tiny-telematics
+After=syslog.target
+After=network.target
+After=redis.target
+
+[Service]
+Type=simple
+User=telematics
+ExecStart=/home/telematics/TinyTelematics/run_client.sh
+RestartSec=5s
+Restart=always
+
+[Install]
+WantedBy=multi-user.target

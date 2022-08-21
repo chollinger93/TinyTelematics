@@ -61,6 +61,15 @@ For `redis`, use `docker`:
 docker run -d --name redis-stack -p 6379:6379 -p 8001:8001 redis/redis-stack:latest
 ```
 
+You can then set up a `systemd` service:
+
+```bash
+sudo cp service/tiny-telematics.service /etc/systemd/system
+sudo systemctl daemon-reload
+sudo systemctl enable tiny-telematics 
+sudo service tiny-telematics start
+```
+
 #### `gpsd`
 
 Please see [sbin/setup_gps.sh](sbin/setup_gps.sh) for the GPS setup. Mileage will vary depending on your distribution.
