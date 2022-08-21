@@ -22,4 +22,5 @@ if [[ -n $(~/.pyenv/versions/3.8.13/bin/pip3 list | grep tiny-telematics) || -n 
 fi
 
 echo "Running"
-~/.pyenv/versions/3.8.13/bin/python3 -m tiny_telematics.main.py --config $DIR/../config/dev.yaml
+cd "$DIR/.."
+$(poetry env info | grep Path | cut -d: -f2 | xargs)/bin/python3 -m tiny_telematics.main.py --config $DIR/../config/dev.yaml
