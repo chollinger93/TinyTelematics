@@ -20,6 +20,7 @@ from geopy import distance
 import statistics
 from dacite import from_dict
 import yaml
+import random
 
 # Model (also types)
 REDIS_KEY = 'buffer'
@@ -190,6 +191,9 @@ def movement_has_changed_during_observation(    records: List[GpsRecord], thresh
     return statistics.mean(_distances) >= threshold_m
 
 
+def generate_new_trip_id() -> int:
+    return int(random.choice(range(0,pow(2,63-1))))
+
 def main(
     gps_client: GpsClient,
     redis_client: RedisClient,
@@ -204,7 +208,7 @@ def main(
     ring_buffer: deque[GpsRecord] = deque(maxlen=max_no_movement_s)
     _buffer: NonEmptyGpsRecordList = NonEmptyGpsRecordList([])
     # Generate a unique ID. We'll terminate otherwise
-    trip_id = uuid.uuid4().int
+    trip_id = generate_new_trip_id()
     logger.info('Using tripId %s', trip_id)
     while True:
         # Flush data when you can
