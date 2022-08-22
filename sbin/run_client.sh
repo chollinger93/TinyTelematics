@@ -2,9 +2,11 @@
 
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 PY_BIN="$HOME/.pyenv/versions/3.8.13/bin/python3"
+BASE_DIR="$DIR/.."
 source $HOME/.bashrc
 
 echo "Starting with Python env $PY_BIN"
+cd "$BASE_DIR"
 poetry env use $PY_BIN
 
 if [[ $UID -eq 0 ]]; then
@@ -24,11 +26,11 @@ fi
 
 if [[ -n $(~/.pyenv/versions/3.8.13/bin/pip3 list | grep tiny-telematics) || -n "$DO_BUILD" ]]; then
     echo "Building"
-    cd "$DIR/.."
+    cd "$BASE_DIR"
     poetry build
     poetry install
 fi
 
 echo "Running"
-cd "$DIR/.."
+cd "$BASE_DIR"
 poetry run python -m tiny_telematics.main --config $DIR/../config/dev.yaml

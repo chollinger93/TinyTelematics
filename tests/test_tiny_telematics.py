@@ -24,13 +24,25 @@ def test_version():
     assert __version__ == "0.1.0"
 
 
-@pytest.mark.skip(reason="Just to hook up a debugger to real data")
+@pytest.mark.skip(reason="You can run this w/ a real GPS dongle")
 def test_real_data():
+    import time
     from gps import gps as GpsClient
     from gps import WATCH_ENABLE, WATCH_NEWSTYLE
-
+    last_point: GpsRecord = None
     gps_client = GpsClient(mode=WATCH_ENABLE | WATCH_NEWSTYLE)
-    r = poll_gps(gps_client, TRIP_ID)
+    i = 0
+    for r in poll_gps(gps_client, TRIP_ID, prev=last_point):
+        try:
+            print(r)
+            if r:
+                last_point = r
+                i += 1
+            if i >= 5:
+                return
+            time.sleep(1)
+        except KeyboardInterrupt:
+            return
 
 
 @pytest.fixture()
@@ -66,9 +78,10 @@ def mock_kafka():
 
 class TestGPS:
     def test_valid_run(self, mock_gps):
-        r = poll_gps(mock_gps, TRIP_ID)
-        assert r.lat == 10.0
-        assert r.lon == -10.0
+        for r in poll_gps(mock_gps, TRIP_ID):
+            assert r.lat == 10.0
+            assert r.lon == -10.0
+            return
 
     @mock.patch("gps.gps")
     def test_filter_empty(self, gps_client):
@@ -80,8 +93,9 @@ class TestGPS:
             "class": "TPV",
         }
         gps_client.next.return_value = dictwrapper(data)
-        r = poll_gps(gps_client, TRIP_ID, do_filter_empty_records=True)
-        assert r is None
+        for r in poll_gps(gps_client, TRIP_ID, do_filter_empty_records=True):
+            assert r is None
+            return
 
     def test_calculate_distance_in_m(self):
         newport_ri = GpsRecord(TRIP_ID, 41.49008, -71.312796, 0, 0)

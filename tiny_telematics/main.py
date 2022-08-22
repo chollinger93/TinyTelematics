@@ -22,6 +22,7 @@ from dacite import from_dict
 import yaml
 import random
 import sys
+from dateutil.parser import isoparse
 
 # Model (also types)
 REDIS_KEY = 'buffer'
@@ -71,8 +72,8 @@ class Config:
 T = TypeVar("T")
 NonEmptyGpsRecordList = NewType("NonEmptyGpsRecordList", List[GpsRecord])
 
-
-def poll_gps(gps_client: GpsClient, trip_id: int, do_filter_empty_records=False) -> Optional[GpsRecord]:
+PREV=None # TODO: rm
+def poll_gps(gps_client: GpsClient, trip_id: int, do_filter_empty_records=False) -> Generator[Optional[GpsRecord], None, None]:
     """Poll the GPS sensor for a record
 
     Args:
@@ -92,17 +93,25 @@ def poll_gps(gps_client: GpsClient, trip_id: int, do_filter_empty_records=False)
                 lon = report.get("lon", 0.0)
                 altitude = report.get("alt", 0.0)
                 speed = report.get("speed", 0.0)
+                ts = isoparse(report.get('time', '1776-07-04T12:00:00.000Z'))
                 if do_filter_empty_records and (lat == 0.0  or lon == 0.0):
                     logger.warning('Empty record, filtering')
-                    return None
-                r = GpsRecord(trip_id, lat, lon, altitude, speed) # TODO: filter 0.0
+                    yield None
+                logger.debug('Raw TPV: %s', report)
+                r = GpsRecord(tripId=trip_id, lat=lat, lon=lon, altitude=altitude, speed=speed, timestamp=ts.timestamp())
+                if PREV and PREV.lat == lat and PREV.lon == lon:
+                    logger.warning('Last point is identical, skipping')
+                    yield None
                 logger.debug('Point: %s', r.to_json())
-                return r
+                yield r
             else:
                 logger.debug('Class is %s, skipping', report)
         except KeyError as e:
             logger.debug('KeyError: %s', e)
             # this happens
+            continue
+        except Exception as e:
+            logger.exception(e)
             continue
 
 
@@ -211,7 +220,9 @@ def main(
     # Generate a unique ID. We'll terminate otherwise
     trip_id = generate_new_trip_id()
     logger.info('Using tripId %s', trip_id)
-    while True:
+    # Poll periodically, but indefinitely so we don't lose the connection
+    # Once this function returns, we're done
+    for record in poll_gps(gps_client, trip_id, do_filter_empty_records):
         # Flush data when you can
         if is_network_available(expected_network):
             logger.debug('Found network %s' % expected_network)
@@ -233,15 +244,16 @@ def main(
             write_cache(redis_client, _buffer)
             _buffer = NonEmptyGpsRecordList([])
         else:
-            logger.debug('Polling GPS (buffer: %s)', len(_buffer))
-            record = poll_gps(gps_client, trip_id, do_filter_empty_records)
             if record:
+                global PREV
+                PREV = record
                 _buffer.append(record)
                 ring_buffer.extend([record])
             else:
                 logger.debug('No GPS record returned')
         # Collect one record per second
         time.sleep(wait_time_s)
+        logger.debug('Polling GPS (buffer: %s)', len(_buffer))
 
 def read_config(path: str) -> Config:
     with open(path) as f:

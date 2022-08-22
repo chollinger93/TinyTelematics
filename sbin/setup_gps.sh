@@ -42,7 +42,7 @@ fi
 # Replace devices
 if [[ -z "${DEVICES}" ]]; then
 	echo "Replacing DEVICES"
-	sed -i 's#DEVICES=""#DEVICES="/dev/ttyACM0"#g' ${GPSD}
+	sed -i 's#DEVICES=""#DEVICES="/dev/ttyACM1"#g' ${GPSD}
 fi
 
 if [[ -z "${GPSD_OPTIONS}" ]]; then
