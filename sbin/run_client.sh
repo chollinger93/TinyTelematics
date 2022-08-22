@@ -13,12 +13,12 @@ fi
 
 # TODO: this is dumb because it needs passwordless sudo
 echo "Running setup"
-if [[ -n $SUDO_USER && $UID -ne 0 ]]; then
-    echo "Running as sudo"
-	sudo /bin/bash $DIR/setup_gps.sh
+if [[ -n $SUDO_USER || $UID -eq 0 ]]; then
+    echo "Running as root"
+	/bin/bash $DIR/setup_gps.sh
 else
-    echo "Running sudo"
-    /bin/bash $DIR/setup_gps.sh
+    echo "Running w/ sudo"
+    sudo /bin/bash $DIR/setup_gps.sh
 fi
 
 
@@ -30,4 +30,5 @@ if [[ -n $(~/.pyenv/versions/3.8.13/bin/pip3 list | grep tiny-telematics) || -n 
 fi
 
 echo "Running"
+cd "$DIR/.."
 poetry run python -m tiny_telematics.main --config $DIR/../config/dev.yaml

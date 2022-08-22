@@ -16,8 +16,9 @@ from tiny_telematics.main import (
 )
 from datetime import datetime
 from gps.client import dictwrapper
+import sys 
 
-TRIP_ID = pow(2,62-1)
+TRIP_ID = 2147483647
 
 def test_version():
     assert __version__ == "0.1.0"
@@ -100,7 +101,7 @@ class TestGPS:
 
     def test_encoder(self):
         newport_ri = GpsRecord(TRIP_ID, 41.49008, -71.312796, 0, 0, timestamp=1661172024963, userId=32230107204254)
-        assert newport_ri.to_json() == '{"py/object": "tiny_telematics.main.GpsRecord", "tripId": 2305843009213693952, "lat": 41.49008, "lon": -71.312796, "altitude": 0, "speed": 0, "timestamp": 1661172024963, "userId": 32230107204254}'
+        assert newport_ri.to_json() == '{"py/object": "tiny_telematics.main.GpsRecord", "tripId": 2147483647, "lat": 41.49008, "lon": -71.312796, "altitude": 0, "speed": 0, "timestamp": 1661172024963, "userId": 32230107204254}'
 
 
 class TestCache:
@@ -147,4 +148,4 @@ class TestMain:
         id = generate_new_trip_id()
         assert id is not None 
         assert id >= 0
-        assert id <= pow(2,63-1)
+        assert id <= sys.maxsize

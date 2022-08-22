@@ -21,6 +21,7 @@ import statistics
 from dacite import from_dict
 import yaml
 import random
+import sys
 
 # Model (also types)
 REDIS_KEY = 'buffer'
@@ -192,7 +193,7 @@ def movement_has_changed_during_observation(    records: List[GpsRecord], thresh
 
 
 def generate_new_trip_id() -> int:
-    return int(random.choice(range(0,pow(2,63-1))))
+    return int(random.choice(range(0,sys.maxsize)))
 
 def main(
     gps_client: GpsClient,
