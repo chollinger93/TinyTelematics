@@ -72,7 +72,7 @@ class Config:
 T = TypeVar("T")
 NonEmptyGpsRecordList = NewType("NonEmptyGpsRecordList", List[GpsRecord])
 
-PREV=None # TODO: rm
+
 def poll_gps(gps_client: GpsClient, trip_id: int, do_filter_empty_records=False) -> Generator[Optional[GpsRecord], None, None]:
     """Poll the GPS sensor for a record
 
@@ -97,13 +97,11 @@ def poll_gps(gps_client: GpsClient, trip_id: int, do_filter_empty_records=False)
                 if do_filter_empty_records and (lat == 0.0  or lon == 0.0):
                     logger.warning('Empty record, filtering')
                     yield None
-                logger.debug('Raw TPV: %s', report)
-                r = GpsRecord(tripId=trip_id, lat=lat, lon=lon, altitude=altitude, speed=speed, timestamp=ts.timestamp())
-                if PREV and PREV.lat == lat and PREV.lon == lon:
-                    logger.warning('Last point is identical, skipping')
-                    yield None
-                logger.debug('Point: %s', r.to_json())
-                yield r
+                else:
+                    logger.debug('Raw TPV: %s', report)
+                    r = GpsRecord(tripId=trip_id, lat=lat, lon=lon, altitude=altitude, speed=speed, timestamp=ts.timestamp())
+                    logger.debug('Point: %s', r.to_json())
+                    yield r
             else:
                 logger.debug('Class is %s, skipping', report)
         except KeyError as e:
@@ -245,8 +243,6 @@ def main(
             _buffer = NonEmptyGpsRecordList([])
         else:
             if record:
-                global PREV
-                PREV = record
                 _buffer.append(record)
                 ring_buffer.extend([record])
             else:
