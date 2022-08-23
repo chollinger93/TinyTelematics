@@ -13,12 +13,14 @@ from tiny_telematics.main import (
     read_config,
     GpsRecord,
     generate_new_trip_id,
+    send_available_data_if_possible,
 )
 from datetime import datetime
 from gps.client import dictwrapper
-import sys 
+import sys
 
 TRIP_ID = 2147483647
+
 
 def test_version():
     assert __version__ == "0.1.0"
@@ -29,6 +31,7 @@ def test_real_data():
     import time
     from gps import gps as GpsClient
     from gps import WATCH_ENABLE, WATCH_NEWSTYLE
+
     last_point: GpsRecord = None
     gps_client = GpsClient(mode=WATCH_ENABLE | WATCH_NEWSTYLE)
     i = 0
@@ -64,8 +67,18 @@ def mock_redis():
     with mock.patch("redis.Redis") as m:
         m.rpush.return_value = 1
         m.lrange.return_value = [
-            GpsRecord(tripId=TRIP_ID, lat=10.0, lon=-10.0, altitude=0, speed=-1).to_json()
+            GpsRecord(
+                tripId=TRIP_ID, lat=10.0, lon=-10.0, altitude=0, speed=-1
+            ).to_json()
         ]
+        yield m
+
+@pytest.fixture()
+def mock_empty_redis():
+    with mock.patch("redis.Redis") as m:
+        m.rpush.return_value = 1
+        m.lrange.return_value =  []
+        m.delete.side_effect = Exception('Deleted data!')
         yield m
 
 
@@ -109,13 +122,28 @@ class TestGPS:
         cleveland_oh = GpsRecord(TRIP_ID, 41.499498, -81.695391, 0, 0)
         assert movement_has_changed_during_observation([newport_ri, cleveland_oh], 10)
         # no change
-        l = [GpsRecord(TRIP_ID, 0, 0.1, 0, 0), GpsRecord(TRIP_ID, 0, 0.0, 0, 0), GpsRecord(TRIP_ID, 0, 0.0, 0, 0)]
+        l = [
+            GpsRecord(TRIP_ID, 0, 0.1, 0, 0),
+            GpsRecord(TRIP_ID, 0, 0.0, 0, 0),
+            GpsRecord(TRIP_ID, 0, 0.0, 0, 0),
+        ]
         # mean distance here is 5565.974539663679m
         assert not movement_has_changed_during_observation(l, 5567)
 
     def test_encoder(self):
-        newport_ri = GpsRecord(TRIP_ID, 41.49008, -71.312796, 0, 0, timestamp=1661172024963, userId=32230107204254)
-        assert newport_ri.to_json() == '{"py/object": "tiny_telematics.main.GpsRecord", "tripId": 2147483647, "lat": 41.49008, "lon": -71.312796, "altitude": 0, "speed": 0, "timestamp": 1661172024963, "userId": 32230107204254}'
+        newport_ri = GpsRecord(
+            TRIP_ID,
+            41.49008,
+            -71.312796,
+            0,
+            0,
+            timestamp=1661172024963,
+            userId=32230107204254,
+        )
+        assert (
+            newport_ri.to_json()
+            == '{"py/object": "tiny_telematics.main.GpsRecord", "tripId": 2147483647, "lat": 41.49008, "lon": -71.312796, "altitude": 0, "speed": 0, "timestamp": 1661172024963, "userId": 32230107204254}'
+        )
 
 
 class TestCache:
@@ -137,22 +165,44 @@ class TestMain:
         mock_subproc.return_value = b"WiFi"
         assert is_network_available("WiFi")
 
+    # TODO: AttributeError: Attempting to set unsupported magic method '__init__'.
     @mock.patch("subprocess.check_output")
     def test_main(self, mock_subproc, mock_gps, mock_redis, mock_kafka):
-        mock_subproc.return_value = b"WiFi"
-        main(
-            gps_client=mock_gps,
-            redis_client=mock_redis,
-            kafka_producer=mock_kafka,
-            kafka_topic="test",
-            expected_network="WiFi",
-            buffer_size=10,
-            max_no_movement_s=2,
-            wait_time_s=0.001,
-        )
-        # a stupid test that just walks the code path and make sure no
-        # types or anything break
-        pass
+        with mock.patch("tiny_telematics.main.KafkaProduction.create") as m_kafka:
+            mock_subproc.return_value = b"WiFi"
+            m_kafka.return_value = mock_kafka
+            main(
+                gps_client=mock_gps,
+                redis_client=mock_redis,
+                bootstrap_servers="server",
+                kafka_topic="test",
+                expected_network="WiFi",
+                buffer_size=10,
+                max_no_movement_s=2,
+                wait_time_s=0.001,
+            )
+            # a stupid test that just walks the code path and make sure no
+            # types or anything break
+            pass
+
+    @mock.patch("subprocess.check_output")
+    def test_send_available_data_if_possible(
+        self, mock_subproc, mock_empty_redis, mock_kafka
+    ):
+        with mock.patch("tiny_telematics.main.KafkaProduction.create") as m_kafka:
+            mock_subproc.return_value = b"WiFi"
+            m_kafka.return_value = mock_kafka
+            r = send_available_data_if_possible(
+                "WiFi",
+                redis_client=mock_empty_redis,
+                kafka_topic="test",
+                bootstrap_servers="server",
+            )
+            # No data returned
+            assert r == 0
+            # also, mock_empty_redis throws on delete()
+            # i.e., this tests makes sure we don't delete data
+
 
     def test_read_config(self):
         c = read_config("config/default.yaml")
@@ -160,6 +210,6 @@ class TestMain:
 
     def test_generate_new_trip_id(self):
         id = generate_new_trip_id()
-        assert id is not None 
+        assert id is not None
         assert id >= 0
         assert id <= sys.maxsize
