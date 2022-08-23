@@ -39,11 +39,19 @@ fi
 # Get drives
 #lsusb
 
+function replaceDevice(){
+	id=$1
+	if [[ -n $(udevadm info "/dev/ttyACM$id" | grep GPS) ]]; then 
+		echo "Replacing DEVICES"
+		sed -i "s#DEVICES=\"\"#DEVICES=\"/dev/ttyACM$id\"#g" ${GPSD}
+		sed -iE "s#/dev/ttyACM[0-9]#/dev/ttyACM$id#g" ${GPSD}
+	fi
+}
+
 # Replace devices
-if [[ -z "${DEVICES}" ]]; then
-	echo "Replacing DEVICES"
-	sed -i 's#DEVICES=""#DEVICES="/dev/ttyACM1"#g' ${GPSD}
-fi
+# TODO: shitty detection, needs udev rule
+replaceDevice 0
+replaceDevice 1
 
 if [[ -z "${GPSD_OPTIONS}" ]]; then
 	sed -i 's#GPSD_OPTIONS=""#GPSD_OPTIONS="-n"#g' ${GPSD}
