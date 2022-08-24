@@ -1,20 +1,15 @@
 from argparse import ArgumentParser
-from ast import parse
 from asyncio import subprocess
-from dataclasses import dataclass
-from datetime import datetime
-from typing import Generator, List, Generic, NewType, Optional, TypeVar
+from typing import Generator, List, Optional
 from collections import deque
 from gps import gps as GpsClient
 from gps import WATCH_ENABLE, WATCH_NEWSTYLE
-import json
-import uuid
+
 import time
 import logging
 import colorlog
 from redis import Redis as RedisClient
 from kafka import KafkaProducer
-import jsonpickle
 import subprocess
 from geopy import distance
 import statistics
@@ -24,70 +19,27 @@ import random
 import sys
 from dateutil.parser import isoparse
 from abc import ABC, abstractmethod
+from .model import GpsRecord, NonEmptyGpsRecordList
+from .config import Config
+import jsonpickle
 
-# Model (also types)
+
+# Constants
 REDIS_KEY = "buffer"
 
-@dataclass
-class GpsRecord:
-    tripId: int
-    lat: float
-    lon: float
-    altitude: float
-    speed: float
-    timestamp: int = int(time.time() * 1000)
-    userId: int = uuid.getnode()
-
-    def __str__(self):
-        return str(json.dumps(self.__dict__))
-
-    def to_json(self):
-        return jsonpickle.encode(self)
-
-
-@dataclass
-class GeneralConfig:
-    expected_wifi_network: str
-    shutdown_timer_s: int = 10
-    cache_buffer: int = 10
-    filter_empty_records: bool = False
-
-
-@dataclass
-class CacheConfig:
-    host: str = "localhost"
-    port: int = 6379
-    db: int = 0
-
-
-@dataclass
-class KafkaConfig:
-    boostrap_servers: str
-    topic: str
-
-
-@dataclass
-class Config:
-    general: GeneralConfig
-    cache: CacheConfig
-    kafka: KafkaConfig
-
-
-# Types
-T = TypeVar("T")
-NonEmptyGpsRecordList = NewType("NonEmptyGpsRecordList", List[GpsRecord])
 
 class AbstractKafkaProduction(ABC):
-
     @staticmethod
     @abstractmethod
     def create(bootstrap_servers: str) -> KafkaProducer:
         pass
 
+
 class KafkaProduction(AbstractKafkaProduction):
     @staticmethod
     def create(bootstrap_servers: str) -> KafkaProducer:
         return KafkaProducer(bootstrap_servers=bootstrap_servers)
+
 
 def poll_gps(
     gps_client: GpsClient, trip_id: int, do_filter_empty_records=False
@@ -230,7 +182,9 @@ def movement_has_changed_during_observation(
 def send_available_data_if_possible(
     expected_network: str,
     redis_client: RedisClient,
-    kafka_topic: str, bootstrap_servers: str) -> int:
+    kafka_topic: str,
+    bootstrap_servers: str,
+) -> int:
     sent_records = 0
     # We only do this if we have WiFi, otherwise Kafka crashes
     if is_network_available(expected_network):
@@ -241,6 +195,7 @@ def send_available_data_if_possible(
         # Clear cache after producing
         if sent_records > 0:
             clear_cache(redis_client)
+    logger.info("Sent %s records to Kafka", sent_records)
     return sent_records
 
 
@@ -263,7 +218,9 @@ def main(
     # Upon startup, we'll clear the cache once if we can
     if is_network_available(expected_network):
         logger.debug("Found network %s, clearing existing cache" % expected_network)
-        send_available_data_if_possible(expected_network, redis_client, kafka_topic, bootstrap_servers)
+        send_available_data_if_possible(
+            expected_network, redis_client, kafka_topic, bootstrap_servers
+        )
     # Buffers
     ring_buffer: deque[GpsRecord] = deque(maxlen=max_no_movement_s)
     _buffer: NonEmptyGpsRecordList = NonEmptyGpsRecordList([])
@@ -276,7 +233,9 @@ def main(
         # Flush data when you can
         if is_network_available(expected_network):
             logger.debug("Found network %s" % expected_network)
-            send_available_data_if_possible(expected_network, redis_client, kafka_topic, bootstrap_servers)
+            send_available_data_if_possible(
+                expected_network, redis_client, kafka_topic, bootstrap_servers
+            )
             # If we're at a standstill, shut down after N minutes, but only if we have enough data
             if len(list(ring_buffer)) >= max_no_movement_s:
                 if not movement_has_changed_during_observation(
@@ -340,7 +299,7 @@ if __name__ == "__main__":
     logger.info("Config: %s", config)
     main(
         gps_client=gpsd,
-        redis_client=redis_client,\
+        redis_client=redis_client,
         kafka_topic=config.kafka.topic,
         bootstrap_servers=config.kafka.boostrap_servers,
         expected_network=config.general.expected_wifi_network,

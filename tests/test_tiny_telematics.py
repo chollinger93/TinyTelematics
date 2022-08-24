@@ -11,10 +11,10 @@ from tiny_telematics.main import (
     is_network_available,
     main,
     read_config,
-    GpsRecord,
     generate_new_trip_id,
     send_available_data_if_possible,
 )
+from tiny_telematics.model import GpsRecord
 from datetime import datetime
 from gps.client import dictwrapper
 import sys
@@ -142,7 +142,7 @@ class TestGPS:
         )
         assert (
             newport_ri.to_json()
-            == '{"py/object": "tiny_telematics.main.GpsRecord", "tripId": 2147483647, "lat": 41.49008, "lon": -71.312796, "altitude": 0, "speed": 0, "timestamp": 1661172024963, "userId": 32230107204254}'
+            == '{"py/object": "tiny_telematics.model.GpsRecord", "tripId": 2147483647, "lat": 41.49008, "lon": -71.312796, "altitude": 0, "speed": 0, "timestamp": 1661172024963, "userId": 32230107204254}'
         )
 
 
