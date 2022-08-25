@@ -6,16 +6,25 @@ import com.chollinger.telematics.model.GpsModel.GpsPoint
 import com.chollinger.telematics.model.GpsModel.GpsPoint._
 import io.circe.Encoder
 import org.apache.flink.api.common.eventtime.WatermarkStrategy
+import org.apache.flink.api.common.restartstrategy.RestartStrategies
+import org.apache.flink.api.common.time.Time
 import org.apache.flink.streaming.api.datastream.DataStreamSink
 import org.apache.flink.streaming.api.scala.{DataStream, StreamExecutionEnvironment}
 
 import java.time.{Duration => JDuration}
+import java.util.concurrent.TimeUnit
 
 object Job {
 
   def main(args: Array[String]): Unit = {
     // Require a streaming environment
     val env = StreamExecutionEnvironment.getExecutionEnvironment
+    env.setRestartStrategy(
+      RestartStrategies.fixedDelayRestart(
+        3,                            // number of restart attempts
+        Time.of(10, TimeUnit.SECONDS) // delay
+      )
+    )
     // Load config
     val config = Config.loadConfig() match {
       case Right(c) => c

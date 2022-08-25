@@ -1,5 +1,7 @@
 #!/bin/bash
 
+DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
+
 is_installed() {
      dpkg --verify "$1" 2>/dev/null
 }
@@ -9,9 +11,11 @@ function replaceDevices(){
 		local id=$i
 		echo "Probing /dev/ttyACM$id"
 		if [[ -n $(udevadm info "/dev/ttyACM$id" | grep GPS) ]]; then 
-			echo "Replacing DEVICES"
+			echo "Replacing gpsd devices with /dev/ttyACM$id"
 			sed -i "s#DEVICES=\"\"#DEVICES=\"/dev/ttyACM$id\"#g" ${GPSD}
 			sed -iE "s#/dev/ttyACM[0-9]#/dev/ttyACM$id#g" ${GPSD}
+			echo "New gpsd config:"
+			cat ${GPSD}
 			break
 		fi
 	done
@@ -45,7 +49,11 @@ rm -f /var/run/gpsd.sock
 # Source and check
 if [[ ! -s "${GPSD}" ]]; then
 	echo "Can't read ${GPSD}, trying to fix it..."
-	cp $DIR/system/gpsd ${GPSD}
+	cp "$DIR/../system/gpsd" ${GPSD}
+fi
+if [[ ! -s "${GPSD}" ]]; then
+	echo "Can't read ${GPSD}, something is very broken. Refusing to cooperate."
+	exit 1
 fi
 
 # Restore gpsd config
@@ -61,3 +69,4 @@ echo "Starting service"
 service gpsd restart
 # Probe
 ps aux | grep gpsd
+# gpsmon as alternative
