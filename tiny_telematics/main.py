@@ -75,7 +75,7 @@ def poll_gps(
                         lon=lon,
                         altitude=altitude,
                         speed=speed,
-                        timestamp=ts.timestamp(),
+                        timestamp=int(ts.timestamp()),
                     )
                     logger.debug("Point: %s", r.to_json())
                     yield r
@@ -147,6 +147,7 @@ def publish_data(producer: KafkaProducer, topic: str, record: GpsRecord) -> None
 def is_network_available(expected_network: str) -> bool:
     try:
         return (
+            # type: ignore
             subprocess.check_output(["iwgetid", "-r"]).decode("ascii").replace("\n", "")
             == expected_network
         )
@@ -188,7 +189,12 @@ def send_available_data_if_possible(
     sent_records = 0
     # We only do this if we have WiFi, otherwise Kafka crashes
     if is_network_available(expected_network):
-        kafka_producer = KafkaProduction.create(bootstrap_servers=bootstrap_servers)
+        try:
+            kafka_producer = KafkaProduction.create(bootstrap_servers=bootstrap_servers)
+        except Exception as e:
+            # It's possible we can't reach Kafka, which shouldn't crash the application
+            logger.exception('Kafka error: %s', e)
+            return 0
         for r in read_cache(redis_client):
             publish_data(kafka_producer, kafka_topic, r)
             sent_records += 1

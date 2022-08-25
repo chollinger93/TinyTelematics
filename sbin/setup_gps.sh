@@ -4,6 +4,19 @@ is_installed() {
      dpkg --verify "$1" 2>/dev/null
 }
 
+function replaceDevices(){
+	for i in $(seq 0 2); do
+		local id=$i
+		echo "Probing /dev/ttyACM$id"
+		if [[ -n $(udevadm info "/dev/ttyACM$id" | grep GPS) ]]; then 
+			echo "Replacing DEVICES"
+			sed -i "s#DEVICES=\"\"#DEVICES=\"/dev/ttyACM$id\"#g" ${GPSD}
+			sed -iE "s#/dev/ttyACM[0-9]#/dev/ttyACM$id#g" ${GPSD}
+			break
+		fi
+	done
+}
+
 if [[ $UID -eq 0 ]]; then
 	SUDO_USER=0
 fi
@@ -30,32 +43,14 @@ killall gpsd
 rm -f /var/run/gpsd.sock
 
 # Source and check
-source ${GPSD}
-if [[ $? -ne 0 ]]; then
-	echo "Can't read ${GPSD}"
-	exit 1
+if [[ ! -s "${GPSD}" ]]; then
+	echo "Can't read ${GPSD}, trying to fix it..."
+	cp $DIR/system/gpsd ${GPSD}
 fi
 
-# Get drives
-#lsusb
-
-function replaceDevice(){
-	id=$1
-	if [[ -n $(udevadm info "/dev/ttyACM$id" | grep GPS) ]]; then 
-		echo "Replacing DEVICES"
-		sed -i "s#DEVICES=\"\"#DEVICES=\"/dev/ttyACM$id\"#g" ${GPSD}
-		sed -iE "s#/dev/ttyACM[0-9]#/dev/ttyACM$id#g" ${GPSD}
-	fi
-}
-
-# Replace devices
+# Restore gpsd config
 # TODO: shitty detection, needs udev rule
-replaceDevice 0
-replaceDevice 1
-
-if [[ -z "${GPSD_OPTIONS}" ]]; then
-	sed -i 's#GPSD_OPTIONS=""#GPSD_OPTIONS="-n"#g' ${GPSD}
-fi
+replaceDevices
 
 # Loopback fix
 echo "Fixing ipv6 config"
@@ -64,6 +59,5 @@ sysctl -w net.ipv6.conf.lo.disable_ipv6=0
 # Restart
 echo "Starting service"
 service gpsd restart
-# Manual
-#gpsd /dev/ttyACM0 -F /var/run/gpsd.sock
+# Probe
 ps aux | grep gpsd
