@@ -19,8 +19,8 @@ import random
 import sys
 from dateutil.parser import isoparse
 from abc import ABC, abstractmethod
-from model import GpsRecord, NonEmptyGpsRecordList
-from config import Config
+from tiny_telematics.model import GpsRecord, NonEmptyGpsRecordList
+from tiny_telematics.config import Config
 import jsonpickle
 
 
@@ -63,20 +63,19 @@ def poll_gps(
                 lon = report.get("lon", 0.0)
                 altitude = report.get("alt", 0.0)
                 speed = report.get("speed", 0.0)
-                # 2022-08-25T12:25:36.000Z TODO test
                 ts = isoparse(report.get("time", "1776-07-04T12:00:00.000Z"))
+                logger.debug("Raw TPV: %s", report)
                 if do_filter_empty_records and (lat == 0 or lon == 0):
                     logger.warning("Empty record, filtering")
                     yield None
                 else:
-                    logger.debug("Raw TPV: %s", report)
                     r = GpsRecord(
                         tripId=trip_id,
                         lat=lat,
                         lon=lon,
                         altitude=altitude,
                         speed=speed,
-                        timestamp=int(ts.timestamp()),
+                        timestamp=int(ts.timestamp()), # seconds
                     )
                     logger.debug("Point: %s", r.to_json())
                     yield r
@@ -88,7 +87,7 @@ def poll_gps(
             continue
         except StopIteration:
             # gpsd's graceful shutdown, we have to honor that
-            logger.error('gpsd asked us to stop, stopping')
+            logger.error("gpsd asked us to stop, stopping")
             break
         except Exception as e:
             logger.exception(e)
@@ -135,7 +134,7 @@ def clear_cache(client: RedisClient) -> int:
     return client.delete(REDIS_KEY)
 
 
-def publish_data(producer: KafkaProducer, topic: str, record: GpsRecord) -> None:
+def publish_data(producer: KafkaProducer, topic: str, record: GpsRecord) -> int:
     """Publishes data to Kafka
 
     Args:
@@ -143,14 +142,19 @@ def publish_data(producer: KafkaProducer, topic: str, record: GpsRecord) -> None
         record (GpsRecord): Data to publish
 
     Returns:
-        IO[Unit]
+        IO[NumberOfWrittenRecords]
     """
     logger.debug("Publishing record: %s", record.to_json())
-    producer.send(
-        topic,
-        key=str(record.userId).encode("utf-8"),
-        value=jsonpickle.encode(record).encode("utf-8"),
-    )
+    try:
+        producer.send(
+            topic,
+            key=str(record.userId).encode("utf-8"),
+            value=jsonpickle.encode(record).encode("utf-8"),
+        )
+        return 1
+    except Exception as e:
+        logger.exception("Issue publishing data: %s", e)
+        return 0
 
 
 def is_network_available(expected_network: str) -> bool:
@@ -193,8 +197,20 @@ def send_available_data_if_possible(
     expected_network: str,
     redis_client: RedisClient,
     kafka_topic: str,
-    bootstrap_servers: str
+    bootstrap_servers: str,
 ) -> int:
+    """If the network is available, create a Kafka producer, read from the cache, and send data
+
+    Args:
+        expected_network (str): WiFi network
+        redis_client (RedisClient): RedisClient
+        kafka_topic (str): Kafka topic
+        bootstrap_servers (str): Kafka servers
+
+    Returns:
+        int: Number of records sent
+    """
+    read_records = 0
     sent_records = 0
     # We only do this if we have WiFi, otherwise Kafka crashes
     if is_network_available(expected_network):
@@ -206,12 +222,21 @@ def send_available_data_if_possible(
             logger.exception("Kafka error: %s", e)
             return 0
         for r in read_cache(redis_client):
-            publish_data(kafka_producer, kafka_topic, r)
-            sent_records += 1
+            read_records += 1
+            sent_records += publish_data(kafka_producer, kafka_topic, r)
         # Clear cache after producing
-        if sent_records > 0:
+        if sent_records == read_records and sent_records > 0:
             clear_cache(redis_client)
             logger.info("Sent %s records to Kafka", sent_records)
+        elif sent_records != read_records and (sent_records > 0 or read_records > 0):
+            # TODO: this introduces duplicates, but avoids data loss. easy fix w/ partial deletes
+            logger.error(
+                "Sent records (%s) and read records (%s) do not match, not flushing cache!",
+                sent_records,
+                read_records,
+            )
+        else:
+            pass 
     return sent_records
 
 
@@ -246,6 +271,19 @@ def main(
     # Poll periodically, but indefinitely so we don't lose the connection
     # Once this function returns, we're done
     for record in poll_gps(gps_client, trip_id, do_filter_empty_records):
+        # With or without network, we collect data first
+        if record:
+            _buffer.append(record)
+            shutdown_buffer.extend([record])
+        else:
+            logger.debug("No GPS record returned")
+
+        # Flush the buffer once it's full
+        if len(_buffer) - 1 >= buffer_size:
+            logger.debug("%s records in buffer, flushing to cache", len(_buffer))
+            write_cache(redis_client, _buffer)
+            _buffer = NonEmptyGpsRecordList([])
+
         # Flush data when you can
         if is_network_available(expected_network):
             logger.debug("Found network %s" % expected_network)
@@ -257,10 +295,17 @@ def main(
                 if not movement_has_changed_during_observation(
                     list(shutdown_buffer), threshold_m=0.1
                 ):
-                    logger.warning("Suspect standstill, shutting down")
+                    logger.warning(
+                        "Suspect standstill, flushing cache again & shutting down"
+                    )
+                    send_available_data_if_possible(
+                        expected_network, redis_client, kafka_topic, bootstrap_servers
+                    )
                     break
                 else:
-                    logger.info("Enough movement change, suspect you're driving in circle in the driveway. Continue.")
+                    logger.info(
+                        "Enough movement change, suspect you're driving in circles in the driveway. Continue."
+                    )
                     shutdown_buffer = deque(maxlen=max_no_movement_s)
             else:
                 logger.debug(
@@ -268,17 +313,7 @@ def main(
                     len(list(shutdown_buffer)),
                     max_no_movement_s,
                 )
-        # With or without network, we just collect data
-        if len(_buffer) - 1 >= buffer_size:
-            # Flush
-            write_cache(redis_client, _buffer)
-            _buffer = NonEmptyGpsRecordList([])
-        else:
-            if record:
-                _buffer.append(record)
-                shutdown_buffer.extend([record])
-            else:
-                logger.debug("No GPS record returned")
+
         # Collect one record per second
         time.sleep(wait_time_s)
         logger.debug("Polling GPS (buffer: %s)", len(_buffer))
@@ -301,7 +336,7 @@ logger.addHandler(handler)
 if __name__ == "__main__":
     parser = ArgumentParser(description="Runs the TinyTelematics client")
     parser.add_argument("-c", "--config", type=str, help="Path to the config file")
-    parser.add_argument("-v", "--verbose", action='store_true', help="Verbose")
+    parser.add_argument("-v", "--verbose", action="store_true", help="Verbose")
     args = parser.parse_args()
     if args.verbose:
         logger.setLevel(logging.DEBUG)
@@ -326,6 +361,6 @@ if __name__ == "__main__":
         expected_network=config.general.expected_wifi_network,
         buffer_size=config.general.cache_buffer,
         max_no_movement_s=config.general.shutdown_timer_s,
-        wait_time_s=1,
+        wait_time_s=config.general.poll_frequency_s,
         do_filter_empty_records=config.general.filter_empty_records,
     )

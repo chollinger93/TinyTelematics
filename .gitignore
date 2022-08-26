@@ -152,3 +152,6 @@ config/*
 # temporarily
 *docker-compose*
 buildkitd.toml
+*ipynb
+!resources/*.csv
+*.bkp

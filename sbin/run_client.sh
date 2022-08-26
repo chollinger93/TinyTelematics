@@ -33,4 +33,4 @@ fi
 
 echo "Running"
 cd "$BASE_DIR"
-poetry run python -m tiny_telematics.main --config $DIR/../config/dev.yaml
+poetry run python -m tiny_telematics.main --config $DIR/../config/dev.yaml -v

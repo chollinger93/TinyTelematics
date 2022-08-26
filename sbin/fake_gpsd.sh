@@ -9,4 +9,4 @@ function setup(){
     sudo aa-complain /usr/sbin/gpsd
 }
 
-gpsfake -S $DIR/../resources/output.nmea
+gpsfake --singleshot -S $DIR/../resources/GraphHopper.nmea

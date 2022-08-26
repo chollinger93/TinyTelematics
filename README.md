@@ -2,33 +2,38 @@
 
 A (tiny) Telematics solution I built over the years in three different iterations (`Hadoop`, `AWS IoT Greengrass`, and completely locally with `redis`, `Kafka`, and `Flink`), for my [blog](https://chollinger.com/blog/).
 
+![opener](docs/opener.png)
+
 ## Setup
 
-There's 2 parts: The client app (runs on a Raspberry Pi) and the backend, which is a `Flink` job that reads from `Kafka` and writes to `MariaDB`.
+There's 2 parts: The client app (runs on a Raspberry Pi, steps 1 and 2) and the backend, which is a `Flink` job that reads from `Kafka` and writes to `MariaDB` (steps 3 and 4). See the [blog](https://chollinger.com/blog/2022/08/tiny-telematics-building-the-thing-my-truck-can-do-just-better-using-redis-kafka-and-flink/) for details.
+
+![arch](docs/arch.drawio.png)
 
 ### Docker
 
-Easiest route. Make sure you expose your host network & the appropriate device in `/dev`.
+Easiest route. Make sure you expose your host network & the appropriate device in `/dev`. **This does not work on `armv6`!**
 
 ```bash
 # For local development, start a local kafka and redis instance
-docker-compose up -d
+#docker-compose up -d 
+docker run -d --name redis-stack -p 6379:6379 -p 8001:8001 redis/redis-stack:latest
 # Build and run
 docker build -t tiny-telematics .
 docker run -v $(pwd)/config:/config --device=/dev/ttyACM0 --net=host --restart=on-failure:5 tiny-telematics --config /config/default.yaml
 ```
 
-If you want to build a multi-arch image for a Raspi:
+If you want to build a multi-arch image for a Raspi (`armv7` or `arm64`):
 
 ```bash
 ❯ docker buildx create --name cross
 ❯ docker buildx use cross
-❯ docker buildx build --platform linux/amd64,linux/arm/v6 -t tiny-telematics:latest .
+❯ docker buildx build --platform linux/amd64,linux/arm/v7 -t tiny-telematics:latest .
 ```
 
 ### Development / Bare Metal Deploy
 
-You'll need to set up the following for this to work - 
+If you want to or need to run this on bare metal, you'll need to set up the following for this to work - 
 
 - Client
   - `Python` w/ `poetry`
@@ -55,11 +60,7 @@ poetry shell
 poetry install
 ```
 
-For `redis`, use `docker`:
-
-```bash
-docker run -d --name redis-stack -p 6379:6379 -p 8001:8001 redis/redis-stack:latest
-```
+Get `redis` via a package manger or compile from source.
 
 You can then set up a `systemd` service:
 
@@ -72,7 +73,7 @@ sudo service tiny-telematics start
 
 #### `gpsd`
 
-Please see [sbin/setup_gps.sh](sbin/setup_gps.sh) for the GPS setup. Mileage will vary depending on your distribution.
+Please see [sbin/setup_gps.sh](sbin/setup_gps.sh) for the GPS setup. Mileage will vary depending on your distribution. It's currently pretty bad.
 
 ##### Version Trouble
 

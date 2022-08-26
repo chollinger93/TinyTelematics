@@ -5,6 +5,7 @@ from dataclasses import dataclass
 class GeneralConfig:
     expected_wifi_network: str
     shutdown_timer_s: int = 10
+    poll_frequency_s: float = 1.0
     cache_buffer: int = 10
     filter_empty_records: bool = False
 
