@@ -64,10 +64,13 @@ def poll_gps(
                 altitude = report.get("alt", 0.0)
                 speed = report.get("speed", 0.0)
                 ts = isoparse(report.get("time", "1776-07-04T12:00:00.000Z"))
+                mode = report.get('mode', 0)
+                if mode <= 1:
+                    logger.warning('No GPS fix (%s), continue', mode)
+                    continue
                 logger.debug("Raw TPV: %s", report)
                 if do_filter_empty_records and (lat == 0 or lon == 0):
                     logger.warning("Empty record, filtering")
-                    yield None
                 else:
                     r = GpsRecord(
                         tripId=trip_id,
@@ -83,7 +86,7 @@ def poll_gps(
                 logger.debug("Class is %s, skipping", report)
         except KeyError as e:
             logger.debug("KeyError: %s", e)
-            # this happens
+            # this happens with SKY objects in 3.22
             continue
         except StopIteration:
             # gpsd's graceful shutdown, we have to honor that
