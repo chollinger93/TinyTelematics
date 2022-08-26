@@ -23,6 +23,7 @@ object Sources {
       // Start from committed offset, also use EARLIEST as reset strategy if committed offset doesn't exist
       .setStartingOffsets(
         OffsetsInitializer.committedOffsets(OffsetResetStrategy.EARLIEST)
+        //OffsetsInitializer.earliest()
       )
       .setDeserializer(
         new KafkaRecordDeserializationSchema[A] {

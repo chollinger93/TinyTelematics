@@ -15,7 +15,7 @@ FLUSH PRIVILEGES;
 
 Run DDL in [sql/trips_ddl.sql](trips_ddl.sql)`
 
-## Scala
+### Scala
 ```bash
 # SDKMan is cool
 sdk install scala 2.12.16
@@ -32,6 +32,9 @@ export RUN_LOCALLY=1
 Create a `src/main/resources/production.conf` first.
 
 ```bash
+# Edit this
+cp src/main/resources/application.conf src/main/resources/production.conf
+# Build, run
 sbt clean assembly
 flink run \
       --detached \

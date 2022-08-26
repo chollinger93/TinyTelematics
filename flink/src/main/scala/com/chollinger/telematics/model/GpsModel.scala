@@ -17,7 +17,7 @@ object GpsModel {
   type Longitude       = Meters
   type Altitude        = Meters
   type Speed           = MetersPerSecond
-  type EpochMs         = Long
+  type EpochS          = Long
   type ID              = Long
 
   @derive(encoder, decoder)
@@ -28,7 +28,7 @@ object GpsModel {
       lon: Longitude,
       altitude: Altitude,
       speed: Speed,
-      timestamp: EpochMs
+      timestamp: EpochS
   )
 
   object GpsPoint {
@@ -46,7 +46,7 @@ object GpsModel {
           statement.setDouble(4, e.lon)
           statement.setDouble(5, e.altitude)
           statement.setDouble(6, e.speed)
-          statement.setTimestamp(7, new Timestamp(e.timestamp))
+          statement.setTimestamp(7, new Timestamp(e.timestamp * 1000))
           statement.setTimestamp(8, new Timestamp(new Date().getTime))
         }
       }
