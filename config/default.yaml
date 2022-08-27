@@ -8,6 +8,8 @@ general:
   cache_buffer: 10
   # Ignore records with lat/long 0.0/0.0
   filter_empty_records: true
+  # Max drift we need to allow until we throw away gpsd buffer records
+  max_drift_s: 5
 
 cache:
   # Redis settings

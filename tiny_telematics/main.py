@@ -42,7 +42,10 @@ class KafkaProduction(AbstractKafkaProduction):
 
 
 def poll_gps(
-    gps_client: GpsClient, trip_id: int, do_filter_empty_records=False
+    gps_client: GpsClient,
+    trip_id: int,
+    max_drift_s: float = 5,
+    do_filter_empty_records=False,
 ) -> Generator[Optional[GpsRecord], None, None]:
     """Poll the GPS sensor for a record
 
@@ -64,24 +67,33 @@ def poll_gps(
                 altitude = report.get("alt", 0.0)
                 speed = report.get("speed", 0.0)
                 ts = isoparse(report.get("time", "1776-07-04T12:00:00.000Z"))
-                mode = report.get('mode', 0)
+                mode = report.get("mode", 0)
                 if mode <= 1:
-                    logger.warning('No GPS fix (%s), continue', mode)
+                    logger.warning("No GPS fix (%s), continue", mode)
                     continue
                 logger.debug("Raw TPV: %s", report)
+                # Account for drift, i.e. the rest of the program lags behind the gpsd buffer
+                # In that case, just throw away records until we're current
+                gps_time = ts.timestamp()
+                now = time.time()
+                drift_s = now - gps_time
+                if drift_s >= max_drift_s:
+                    logger.warning("Correcting %ss drift, skipping record", drift_s)
+                    continue
                 if do_filter_empty_records and (lat == 0 or lon == 0):
                     logger.warning("Empty record, filtering")
-                else:
-                    r = GpsRecord(
-                        tripId=trip_id,
-                        lat=lat,
-                        lon=lon,
-                        altitude=altitude,
-                        speed=speed,
-                        timestamp=int(ts.timestamp()), # seconds
-                    )
-                    logger.debug("Point: %s", r.to_json())
-                    yield r
+                    continue
+                # Only of all is well do we yield
+                r = GpsRecord(
+                    tripId=trip_id,
+                    lat=lat,
+                    lon=lon,
+                    altitude=altitude,
+                    speed=speed,
+                    timestamp=int(ts.timestamp()),  # seconds
+                )
+                logger.debug("Point: %s", r.to_json())
+                yield r
             else:
                 logger.debug("Class is %s, skipping", report)
         except KeyError as e:
@@ -239,7 +251,7 @@ def send_available_data_if_possible(
                 read_records,
             )
         else:
-            pass 
+            pass
     return sent_records
 
 
@@ -256,6 +268,7 @@ def main(
     buffer_size=10,
     max_no_movement_s=300,
     wait_time_s=1,
+    max_drift_s=5,
     do_filter_empty_records=False,
 ) -> None:
 
@@ -273,7 +286,7 @@ def main(
     logger.info("Using tripId %s", trip_id)
     # Poll periodically, but indefinitely so we don't lose the connection
     # Once this function returns, we're done
-    for record in poll_gps(gps_client, trip_id, do_filter_empty_records):
+    for record in poll_gps(gps_client, trip_id, max_drift_s, do_filter_empty_records):
         # With or without network, we collect data first
         if record:
             _buffer.append(record)
@@ -318,7 +331,7 @@ def main(
                 )
 
         # Collect one record per second
-        time.sleep(wait_time_s)
+        # time.sleep(wait_time_s)
         logger.debug("Polling GPS (buffer: %s)", len(_buffer))
 
 
@@ -365,5 +378,6 @@ if __name__ == "__main__":
         buffer_size=config.general.cache_buffer,
         max_no_movement_s=config.general.shutdown_timer_s,
         wait_time_s=config.general.poll_frequency_s,
+        max_drift_s=config.general.max_drift_s,
         do_filter_empty_records=config.general.filter_empty_records,
     )

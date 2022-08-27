@@ -7,6 +7,7 @@ class GeneralConfig:
     shutdown_timer_s: int = 10
     poll_frequency_s: float = 1.0
     cache_buffer: int = 10
+    max_drift_s: float = 5
     filter_empty_records: bool = False
 
 
