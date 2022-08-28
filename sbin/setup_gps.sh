@@ -67,6 +67,15 @@ sysctl -w net.ipv6.conf.lo.disable_ipv6=0
 # Restart
 echo "Starting service"
 service gpsd restart
+if [[ $? -ne 0 ]]; then
+	echo "Error: Couldn't start gpsd"
+	exit 1
+fi
+
+# Read the blog as to why this shit is necessary
+echo "Resetting"
+ubxtool -p RESET
+
 # Probe
 ps aux | grep gpsd
 # gpsmon as alternative

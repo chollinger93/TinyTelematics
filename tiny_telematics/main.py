@@ -3,7 +3,7 @@ from asyncio import subprocess
 from typing import Generator, List, Optional
 from collections import deque
 from gps import gps as GpsClient
-from gps import WATCH_ENABLE, WATCH_NEWSTYLE
+from gps import WATCH_ENABLE, WATCH_JSON, WATCH_NEWSTYLE
 
 import time
 import logging
@@ -42,7 +42,6 @@ class KafkaProduction(AbstractKafkaProduction):
 
 
 def poll_gps(
-    gps_client: GpsClient,
     trip_id: int,
     max_drift_s: float = 5,
     do_filter_empty_records=False,
@@ -55,17 +54,18 @@ def poll_gps(
     Returns:
         Optional[GpsRecord]: Might be not available
     """
-    while True:
+    c = 0
+    prev_tpv = None
+    gps_session = GpsClient(mode=WATCH_ENABLE | WATCH_JSON | WATCH_NEWSTYLE)
+    for report in gps_session:
+        gps_session.read()
         try:
-            report = gps_client.next()
             # TPV - Time Position Velocity
             # Returns a dictwrapper with various readings; we only need TPV
             if report["class"] == "TPV":
-                # Get data
-                lat = report.get("lat", 0.0)
-                lon = report.get("lon", 0.0)
-                altitude = report.get("alt", 0.0)
-                speed = report.get("speed", 0.0)
+                logger.debug(gps_session)
+                c += 1
+                # Get data to see if we need to continue
                 ts = isoparse(report.get("time", "1776-07-04T12:00:00.000Z"))
                 mode = report.get("mode", 0)
                 if mode <= 1:
@@ -80,8 +80,18 @@ def poll_gps(
                 if drift_s >= max_drift_s:
                     logger.warning("Correcting %ss drift, skipping record", drift_s)
                     continue
+                # Parse remaining attributes
+                lat = report.get("lat", 0.0)
+                lon = report.get("lon", 0.0)
+                altitude = report.get("alt", 0.0)
+                speed = report.get("speed", 0.0)
                 if do_filter_empty_records and (lat == 0 or lon == 0):
                     logger.warning("Empty record, filtering")
+                    continue
+                # Check for duplicates
+                if prev_tpv and prev_tpv.get("lat", 0.0) == lat and prev_tpv.get("lon", 0.0) == lon:
+                    logger.warning("Duplicate record, filtering")
+                    prev_tpv = report
                     continue
                 # Only of all is well do we yield
                 r = GpsRecord(
@@ -93,9 +103,11 @@ def poll_gps(
                     timestamp=int(ts.timestamp()),  # seconds
                 )
                 logger.debug("Point: %s", r.to_json())
+                prev_tpv = report
                 yield r
             else:
-                logger.debug("Class is %s, skipping", report)
+                logger.debug("Class is %s, skipping", report["class"])
+                continue
         except KeyError as e:
             logger.debug("KeyError: %s", e)
             # this happens with SKY objects in 3.22
@@ -260,7 +272,6 @@ def generate_new_trip_id() -> int:
 
 
 def main(
-    gps_client: GpsClient,
     redis_client: RedisClient,
     kafka_topic: str,
     bootstrap_servers: str,
@@ -286,7 +297,7 @@ def main(
     logger.info("Using tripId %s", trip_id)
     # Poll periodically, but indefinitely so we don't lose the connection
     # Once this function returns, we're done
-    for record in poll_gps(gps_client, trip_id, max_drift_s, do_filter_empty_records):
+    for record in poll_gps(trip_id, max_drift_s, do_filter_empty_records):
         # With or without network, we collect data first
         if record:
             _buffer.append(record)
@@ -331,7 +342,7 @@ def main(
                 )
 
         # Collect one record per second
-        # time.sleep(wait_time_s)
+        time.sleep(wait_time_s)
         logger.debug("Polling GPS (buffer: %s)", len(_buffer))
 
 
@@ -361,7 +372,6 @@ if __name__ == "__main__":
     # Read config
     config = read_config(args.config)
     # Resources
-    gpsd = GpsClient(mode=WATCH_ENABLE | WATCH_NEWSTYLE)
     redis_client = RedisClient(
         host=config.cache.host, port=config.cache.port, db=config.cache.db
     )
@@ -370,7 +380,6 @@ if __name__ == "__main__":
     logger.info("Starting...")
     logger.info("Config: %s", config)
     main(
-        gps_client=gpsd,
         redis_client=redis_client,
         kafka_topic=config.kafka.topic,
         bootstrap_servers=config.kafka.boostrap_servers,
