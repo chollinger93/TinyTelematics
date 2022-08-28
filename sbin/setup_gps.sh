@@ -64,6 +64,9 @@ replaceDevices
 echo "Fixing ipv6 config"
 sysctl -w net.ipv6.conf.lo.disable_ipv6=0
 
+# Read the blog as to why this shit is necessary
+ubxtool -p RESET
+
 # Restart
 echo "Starting service"
 service gpsd restart
