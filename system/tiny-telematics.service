@@ -5,6 +5,7 @@ After=network.target
 After=redis.target
 
 [Service]
+Environment=UBX_DEVICE=G7020-KT
 Type=simple
 User=telematics
 ExecStart=/home/telematics/TinyTelematics/sbin/run_client.sh

@@ -71,7 +71,7 @@ def poll_gps(
                 if mode <= 1:
                     logger.warning("No GPS fix (%s), continue", mode)
                     continue
-                logger.debug("Raw TPV: %s", report)
+                #logger.debug("Raw TPV: %s", report)
                 # Account for drift, i.e. the rest of the program lags behind the gpsd buffer
                 # In that case, just throw away records until we're current
                 gps_time = ts.timestamp()
@@ -106,7 +106,7 @@ def poll_gps(
                 prev_tpv = report
                 yield r
             else:
-                logger.debug("Class is %s, skipping", report["class"])
+                #logger.debug("Class is %s, skipping", report["class"])
                 continue
         except KeyError as e:
             logger.debug("KeyError: %s", e)

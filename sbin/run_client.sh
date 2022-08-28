@@ -41,6 +41,16 @@ if [[ -n $(~/.pyenv/versions/3.8.13/bin/pip3 list | grep tiny-telematics) || -n 
     poetry install
 fi
 
+# Configure the u-blox device, if you have one
+# Note: This is specific for my u-blox G7020-KT
+if [[ -n $UBX_DEVICE && -f $DIR/ubx/$UBX_DEVICE ]]; then 
+	echo "Configuring $UBX_DEVICE"
+	/bin/bash $DIR/ubx/$UBX_DEVICE
+else
+	echo "UBX_DEVICE not set"
+fi
+
+
 echo "Running"
 cd "$BASE_DIR"
 poetry run python -m tiny_telematics.main --config $DIR/../config/dev.yaml -v

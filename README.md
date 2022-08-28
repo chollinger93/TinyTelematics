@@ -62,7 +62,9 @@ poetry install
 
 Get `redis` via a package manger or compile from source.
 
-You can then set up a `systemd` service:
+You can then set up a `systemd` service.
+
+Make sure to set `Environment=UBX_DEVICE=G7020-KT` correctly and/or set up a script in `sbin/ubx` for your chipset.
 
 ```bash
 sudo cp service/tiny-telematics.service /etc/systemd/system
