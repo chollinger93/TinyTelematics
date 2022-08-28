@@ -43,7 +43,9 @@ cp ${GPSD} /etc/default/gpsd.bkp
 
 # kill
 echo "Killing orphaned services"
-killall gpsd
+killall -9 gpsd
+killall -9 gpsfake
+systemctl stop gpsd.socket
 rm -f /var/run/gpsd.sock
 
 # Source and check
@@ -64,9 +66,6 @@ replaceDevices
 echo "Fixing ipv6 config"
 sysctl -w net.ipv6.conf.lo.disable_ipv6=0
 
-# Read the blog as to why this shit is necessary
-ubxtool -p RESET
-
 # Restart
 echo "Starting service"
 service gpsd restart
@@ -77,7 +76,11 @@ fi
 
 # Read the blog as to why this shit is necessary
 echo "Resetting"
-ubxtool -p RESET
+r=$(ubxtool -p RESET -P 14.00)
+if [[ $? -ne 0 || -n $(echo $r | grep -i 'error' ) ]]; then
+	echo "Error: Reset failed: $r"
+	exit 1
+fi
 
 # Probe
 ps aux | grep gpsd

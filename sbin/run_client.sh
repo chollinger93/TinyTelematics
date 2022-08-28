@@ -1,5 +1,13 @@
 #!/bin/bash
 
+function gps_status(){
+    s=$1
+    if [[ $s -ne 0 ]]; then
+        echo "setup_gps.sh failed"
+        exit 1
+    fi 
+}
+
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 PY_BIN="$HOME/.pyenv/versions/3.8.13/bin/python3"
 BASE_DIR="$DIR/.."
@@ -18,9 +26,11 @@ echo "Running setup"
 if [[ -n $SUDO_USER || $UID -eq 0 ]]; then
     echo "Running as root"
 	/bin/bash $DIR/setup_gps.sh
+    gps_status $?
 else
     echo "Running w/ sudo"
     sudo /bin/bash $DIR/setup_gps.sh
+    gps_status $?
 fi
 
 
