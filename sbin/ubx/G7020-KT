@@ -6,10 +6,9 @@ function configureUbx(){
 		return
 	fi
 	export UBXOPTS="-P $ver"
-	# Disable sending of the basic binary messages.
-	ubxtool -d BINARY
-	# Enabke sending basic NMEA messages. The messages are GBS, GGA, GSA, GGL, GST, GSV, RMC, VTG, and ZDA.
-	# My reciever can only do basic NMEA0183 
+	# Enable sending of the basic binary messages.
+	ubxtool -e BINARY
+	# Enable sending basic NMEA messages. The messages are GBS, GGA, GSA, GGL, GST, GSV, RMC, VTG, and ZDA.
 	ubxtool -e NMEA
 	# Enable GPS
 	ubxtool -e GPS

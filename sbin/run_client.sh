@@ -1,5 +1,9 @@
 #!/bin/bash
 
+# Options:
+# UBX_DEVICE = one of sbin/ubx for configuring specifix u-blox chipsets
+# GPS_RESET = Do a hard ubx reset
+
 function gps_status(){
     s=$1
     if [[ $s -ne 0 ]]; then
@@ -7,6 +11,11 @@ function gps_status(){
         exit 1
     fi 
 }
+
+if [[ $UID -eq 0 || -n $SUDO_USER ]]; then
+	echo "Cowardly refusing to run as root or sudo"
+    exit 1
+fi
 
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 PY_BIN="$HOME/.pyenv/versions/3.8.13/bin/python3"
@@ -41,6 +50,18 @@ if [[ -n $(~/.pyenv/versions/3.8.13/bin/pip3 list | grep tiny-telematics) || -n 
     poetry install
 fi
 
+
+# Uncomment this if you re-use an old receiver
+if [[ -n $GPS_RESET ]]; then 
+	echo "Resetting"
+	r=$(ubxtool -p RESET -P 14.00)
+	if [[ $? -ne 0 || -n $(echo $r | grep -i 'error' ) ]]; then
+		echo "Error: Reset failed: $r"
+		exit 1
+	fi
+fi
+
+
 # Configure the u-blox device, if you have one
 # Note: This is specific for my u-blox G7020-KT
 if [[ -n $UBX_DEVICE && -f $DIR/ubx/$UBX_DEVICE ]]; then 
@@ -49,7 +70,6 @@ if [[ -n $UBX_DEVICE && -f $DIR/ubx/$UBX_DEVICE ]]; then
 else
 	echo "UBX_DEVICE not set"
 fi
-
 
 echo "Running"
 cd "$BASE_DIR"

@@ -56,7 +56,7 @@ def poll_gps(
     """
     c = 0
     prev_tpv = None
-    gps_session = GpsClient(mode=WATCH_ENABLE | WATCH_JSON | WATCH_NEWSTYLE)
+    gps_session = GpsClient(mode=WATCH_ENABLE | WATCH_NEWSTYLE)
     for report in gps_session:
         gps_session.read()
         try:

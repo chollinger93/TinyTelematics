@@ -1,9 +1,5 @@
 #!/bin/bash
 
-# Options:
-# UBX_DEVICE = one of sbin/ubx for configuring specifix u-blox chipsets
-# GPS_RESET = Do a hard ubx reset
-
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 
 is_installed() {
@@ -76,16 +72,6 @@ service gpsd restart
 if [[ $? -ne 0 ]]; then
 	echo "Error: Couldn't start gpsd"
 	exit 1
-fi
-
-# Uncomment this if you re-use an old receiver
-if [[ -n $GPS_RESET ]]; then 
-	echo "Resetting"
-	r=$(ubxtool -p RESET -P 14.00)
-	if [[ $? -ne 0 || -n $(echo $r | grep -i 'error' ) ]]; then
-		echo "Error: Reset failed: $r"
-		exit 1
-	fi
 fi
 
 # Probe
