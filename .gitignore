@@ -145,3 +145,13 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+# Custom
+config/*
+!config/default.yaml
+# temporarily
+*docker-compose*
+buildkitd.toml
+*ipynb
+!resources/*.csv
+*.bkp

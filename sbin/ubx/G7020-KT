@@ -1,0 +1,17 @@
+#!/bin/bash
+function configureUbx(){
+	ver=$(ubxtool -p MON-VER  | grep PROTVER | xargs | cut -d' ' -f3)
+	if [[ -z $ver ]]; then
+		echo "No valid ubx device?"
+		return
+	fi
+	export UBXOPTS="-P $ver"
+	# Enable sending of the basic binary messages.
+	ubxtool -e BINARY
+	# Enable sending basic NMEA messages. The messages are GBS, GGA, GSA, GGL, GST, GSV, RMC, VTG, and ZDA.
+	ubxtool -e NMEA
+	# Enable GPS
+	ubxtool -e GPS
+}
+
+configureUbx

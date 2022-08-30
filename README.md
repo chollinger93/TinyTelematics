@@ -1,47 +1,129 @@
 # Tiny Telematics
-A telematics showcase for my blog.
 
-The project collects data from a driver and generates reports and dashboards.
+A (tiny) Telematics solution I built over the years in three different iterations (`Hadoop`, `AWS IoT Greengrass`, and completely locally with `redis`, `Kafka`, and `Flink`), for my [blog](https://chollinger.com/blog/).
 
-The project is split into 2 logical elements: `Hadoop` and `AWS`. The below sections explain the differences.
+![opener](docs/opener.png)
 
-**As the project is split into 2 logical elements, please see below for specific branch names**
+## Setup
 
-The `Hadoop` way uses batch processing and relies on [SensorLog](https://apps.apple.com/us/app/sensorlog/id388014573), an iOS app. Other than that, it is entirely based on Open Source.
+There's 2 parts: The client app (runs on a Raspberry Pi, steps 1 and 2) and the backend, which is a `Flink` job that reads from `Kafka` and writes to `MariaDB` (steps 3 and 4). See the [blog](https://chollinger.com/blog/2022/08/tiny-telematics-building-the-thing-my-truck-can-do-just-better-using-redis-kafka-and-flink/) for details.
 
-The `AWS` way is vendor-locked to AWS (to a degree), but processes data in real-time. It relies on a physical GPS dongle.
- 
-## The Hadoop Way
-The original article used Spark, Hive, and Zeppelin to process the data and can be found [here](https://chollinger.com/blog/2017/03/tiny-telematics-with-spark-and-zeppelin/).
+![arch](docs/arch.drawio.png)
 
-![Hadoop Architecture](./docs/hadoop-arch.png)
+### Docker
 
-![Zeppelin](./docs/zeppelin.jpg)
+Easiest route. Make sure you expose your host network & the appropriate device in `/dev`. **This does not work on `armv6`!**
 
-The associated branch for hadoop is `hadoop`.
+```bash
+# For local development, start a local kafka and redis instance
+#docker-compose up -d 
+docker run -d --name redis-stack -p 6379:6379 -p 8001:8001 redis/redis-stack:latest
+# Build and run
+docker build -t tiny-telematics .
+docker run -v $(pwd)/config:/config --device=/dev/ttyACM0 --net=host --restart=on-failure:5 tiny-telematics --config /config/default.yaml
+```
 
-## The AWS Way
-The "new" way is using AWS with IoT Greengrass, Kinesis Firehose, Lambda, Athena, and QuickSight and can be found [here](https://chollinger.com/blog/2019/08/how-i-built-a-tiny-real-time-telematics-application-on-aws/).
+If you want to build a multi-arch image for a Raspi (`armv7` or `arm64`):
 
-It depends on a physical GPS dongle, as it uses the `gps` Kernel module.
+```bash
+❯ docker buildx create --name cross
+❯ docker buildx use cross
+❯ docker buildx build --platform linux/amd64,linux/arm/v7 -t tiny-telematics:latest .
+```
 
+### Development / Bare Metal Deploy
 
-![AWS Architecture](./docs/aws-arch.png)
+If you want to or need to run this on bare metal, you'll need to set up the following for this to work - 
 
-![AWS Architecture](./docs/aws-visual.png)
+- Client
+  - `Python` w/ `poetry`
+  - `gpsd`
+  - `redis`
+- Server
+  - MariaDB/mySQL
+  - Kafka
 
-The associated branch for AWS is `master`.
+#### Client (Raspberry Pi)
 
-# AWS Setup
-Please see the blog article for AWS details.
+```bash
+# Install poetry
+curl -sSL https://raw.githubusercontent.com/python-poetry/poetry/master/get-poetry.py | python -
+# Install an appropriate python version
+curl https://pyenv.run | bash
+echo 'export PYENV_ROOT="$HOME/.pyenv"' >> ~/.bashrc
+echo 'command -v pyenv >/dev/null || export PATH="$PYENV_ROOT/bin:$PATH"' >> ~/.bashrc
+echo 'eval "$(pyenv init -)"' >> ~/.bashrc
 
-For the local setup, a Linux kernel is required.
+pyenv install 3.8.13
+poetry env use ~/.pyenv/versions/3.8.13/bin/python3
+poetry shell
+poetry install
+```
 
-## Lambda
-Please see `lambda/telematics-input/deploy_venv.sh` for the deployment script.
+Get `redis` via a package manger or compile from source.
 
-## GPSD
-Please see `sbin/setup_gps.sh` for the GPS setup. Mileage will vary depending on your distribution.
+You can then set up a `systemd` service.
+
+Make sure to set `Environment=UBX_DEVICE=G7020-KT` correctly and/or set up a script in `sbin/ubx` for your chipset.
+
+```bash
+sudo cp service/tiny-telematics.service /etc/systemd/system
+sudo systemctl daemon-reload
+sudo systemctl enable tiny-telematics 
+sudo service tiny-telematics start
+```
+
+#### `gpsd`
+
+Please see [sbin/setup_gps.sh](sbin/setup_gps.sh) for the GPS setup. Mileage will vary depending on your distribution. It's currently pretty bad.
+
+##### Version Trouble
+
+The `gps` package is only compatible with `Python 3.8`, because `3.9` removed the `encoding` keyword in `JSONDecoder`:
+
+```bash
+TypeError: JSONDecoder.__init__() got an unexpected keyword argument 'encoding'
+```
+
+This is, however, *not* the fault of the maintainers of `gpsd`, see the issue [here](https://gitlab.com/gpsd/gpsd/-/issues/122), since they do not maintain the `pip` project (or any binaries for that matter). If you can, build it from scratch.
+
+##### ipv6 loopback needs to be enabled
+
+Please see https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=818332
+
+```bash
+sudo sysctl -w net.ipv6.conf.lo.disable_ipv6=0
+```
+
+## Backend
+
+### Flink
+
+See [flink/README.md](flink/README.md)
+
+### MySQL
+
+See [flink/README.md](flink/README.md)
+
+### Kafka
+
+See [docker-compose](https://developer.confluent.io/quickstart/kafka-docker/) 
+
+## Test
+
+```bash
+poetry shell
+poetry run pytest tests -v  
+```
+
+## Run
+
+```bash
+poetry shell
+python3 tiny_telematics/main.py --config config/dev.yaml
+# or sbin/run_client.sh - will ask for sudo to setup gpsd
+```
 
 ## License
+
 This project is licensed under the GNU GPLv3 License - see the [LICENSE](LICENSE) file for details.

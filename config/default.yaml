@@ -1,0 +1,23 @@
+---
+general:
+  # Expected WiFi network
+  expected_wifi_network: MyHomeWiFi
+  # Time until the application shuts down
+  shutdown_timer_s: 300
+  # Buffer until we flush to redis
+  cache_buffer: 10
+  # Ignore records with lat/long 0.0/0.0
+  filter_empty_records: true
+  # Max drift we need to allow until we throw away gpsd buffer records
+  max_drift_s: 5
+
+cache:
+  # Redis settings
+  host: localhost
+  port: 6379
+  db: 0
+
+kafka:
+  # Kafka broker, once on WiFi
+  boostrap_servers: localhost:19092
+  topic: MyTopic
