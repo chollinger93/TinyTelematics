@@ -48,9 +48,8 @@ def test_real_data():
             return
 
 
-@pytest.fixture()
-def mock_gps():
-    data = {
+def mock_gps_record() -> dict:
+    return {
         "lat": 10.0,
         "lon": -10.0,
         "altitude": 0,
@@ -59,8 +58,11 @@ def mock_gps():
         "mode": 2,
         "time": datetime.utcnow().isoformat(),
     }
+
+@pytest.fixture()
+def mock_gps():
     with mock.patch("gps.gps") as m:
-        m.next.return_value = dictwrapper(data)
+        m.next.return_value = dictwrapper(mock_gps_record())
         yield m
 
 
@@ -94,10 +96,12 @@ def mock_kafka():
 
 class TestGPS:
     def test_valid_run(self, mock_gps):
-        for r in poll_gps(mock_gps, TRIP_ID):
-            assert r.lat == 10.0
-            assert r.lon == -10.0
-            return
+        with mock.patch("tiny_telematics.main.get_gps_session") as m_gps:
+            m_gps.__next__.return_value = mock_gps_record()
+            for r in poll_gps(TRIP_ID):
+                assert r.lat == 10.0
+                assert r.lon == -10.0
+                return
 
     # TODO: this doesn't yield None, as it offers no real-life benefits as of now
     # @mock.patch("gps.gps")
@@ -175,21 +179,22 @@ class TestMain:
     @mock.patch("subprocess.check_output")
     def test_main(self, mock_subproc, mock_gps, mock_redis, mock_kafka):
         with mock.patch("tiny_telematics.main.KafkaProduction.create") as m_kafka:
-            mock_subproc.return_value = b"WiFi"
-            m_kafka.return_value = mock_kafka
-            main(
-                gps_client=mock_gps,
-                redis_client=mock_redis,
-                bootstrap_servers="server",
-                kafka_topic="test",
-                expected_network="WiFi",
-                buffer_size=10,
-                max_no_movement_s=2,
-                wait_time_s=0.001,
-            )
-            # a stupid test that just walks the code path and make sure no
-            # types or anything break
-            pass
+            with mock.patch("tiny_telematics.main.get_gps_session") as m_gps:
+                m_gps.__next__.return_value = mock_gps_record()
+                mock_subproc.return_value = b"WiFi"
+                m_kafka.return_value = mock_kafka
+                main(
+                    redis_client=mock_redis,
+                    bootstrap_servers="server",
+                    kafka_topic="test",
+                    expected_network="WiFi",
+                    buffer_size=10,
+                    max_no_movement_s=2,
+                    wait_time_s=0.001,
+                )
+                # a stupid test that just walks the code path and make sure no
+                # types or anything break
+                pass
 
     @mock.patch("subprocess.check_output")
     def test_send_available_data_if_possible(

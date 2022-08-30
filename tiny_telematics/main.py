@@ -41,6 +41,9 @@ class KafkaProduction(AbstractKafkaProduction):
         return KafkaProducer(bootstrap_servers=bootstrap_servers)
 
 
+def get_gps_session() -> GpsClient:
+    return GpsClient(mode=WATCH_ENABLE | WATCH_NEWSTYLE)
+
 def poll_gps(
     trip_id: int,
     max_drift_s: float = 5,
@@ -56,7 +59,7 @@ def poll_gps(
     """
     c = 0
     prev_tpv = None
-    gps_session = GpsClient(mode=WATCH_ENABLE | WATCH_NEWSTYLE)
+    gps_session = get_gps_session()
     for report in gps_session:
         gps_session.read()
         try:
