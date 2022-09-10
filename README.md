@@ -1,4 +1,11 @@
+
 # Tiny Telematics
+
+[![Version][version-shield]][version-url]
+[![Forks][forks-shield]][forks-url]
+[![Stargazers][stars-shield]][stars-url]
+[![Issues][issues-shield]][issues-url]
+[![MIT License][license-shield]][license-url]
 
 Track your vehicle's live location offline by using little more than a Raspberry Pi & a gps dongle (aka "[Tiny Telematics](https://chollinger.com/blog/2022/08/tiny-telematics-tracking-my-trucks-location-offline-with-a-raspberry-pi-redis-kafka-and-flink-part-1/)"), without expensive subscription services.
 
@@ -88,3 +95,16 @@ I built this over the years in three different iterations - `Hadoop`, `AWS IoT G
 ## License
 
 This project is licensed under the GNU GPLv3 License - see the [LICENSE](LICENSE) file for details.
+
+<!-- MARKDOWN LINKS & IMAGES -->
+<!-- https://www.markdownguide.org/basic-syntax/#reference-style-links -->
+[version-shield]: https://img.shields.io/github/v/release/chollinger93/tinytelematics
+[version-url]: https://github.com/chollinger93/TinyTelematics/releases
+[forks-shield]: https://img.shields.io/github/forks/chollinger93/tinytelematics.svg
+[forks-url]: https://github.com/chollinger93/tinytelematics/network/members
+[stars-shield]: https://img.shields.io/github/stars/chollinger93/tinytelematics.svg
+[stars-url]: https://github.com/chollinger93/tinytelematics/stargazers
+[issues-shield]: https://img.shields.io/github/issues/chollinger93/tinytelematics.svg
+[issues-url]: https://github.com/chollinger93/tinytelematics/issues
+[license-shield]: https://img.shields.io/github/license/chollinger93/tinytelematics.svg
+[license-url]: https://github.com/chollinger93/tinytelematics/blob/tinytelematics/LICENSE
