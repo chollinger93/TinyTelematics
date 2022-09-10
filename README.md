@@ -1,18 +1,33 @@
 # Tiny Telematics
 
-A (tiny) Telematics solution I built over the years in three different iterations (`Hadoop`, `AWS IoT Greengrass`, and completely locally with `redis`, `Kafka`, and `Flink`), for my [blog](https://chollinger.com/blog/).
+Track your vehicle's live location offline by using little more than a Raspberry Pi & a gps dongle (aka "[Tiny Telematics](https://chollinger.com/blog/2022/08/tiny-telematics-tracking-my-trucks-location-offline-with-a-raspberry-pi-redis-kafka-and-flink-part-1/)"), without expensive subscription services.
 
-![opener](docs/opener.png)
+## Introduction
 
-## Setup
+`Tiny Telematics` is an application stack consisting of a `Raspberry Pi` client and a `Apache Flink` based backend that communicate via `Kafka` and cache data via `redis`.
 
-There's 2 parts: The client app (runs on a Raspberry Pi, steps 1 and 2) and the backend, which is a `Flink` job that reads from `Kafka` and writes to `MariaDB` (steps 3 and 4). See the [blog](https://chollinger.com/blog/2022/08/tiny-telematics-building-the-thing-my-truck-can-do-just-better-using-redis-kafka-and-flink/) for details.
+Once running, `Tiny Telematics` can track your vehicle's location with reasonable accuracy, and doesn't require expensive subscription services or in-vehicle WiFi. 
 
-![arch](docs/arch.drawio.png)
+![image-20220829125026749](docs/img/image-20220829125026749.png)
+
+More details can be found in [`architecture.md`](docs/architecture.md).
+
+## Client Setup
+
+The client runs best on a prepared `Raspbian` image. You can find the steps to build this image [here](https://chollinger.com/blog/2022/08/tiny-telematics-tracking-my-trucks-location-offline-with-a-raspberry-pi-redis-kafka-and-flink-part-1/#building-a-small-image). 
+
+This image contains - 
+
+- All `gpsd` dependencies
+- `Python 3.8.13` w/ `poetry`
+- `redis` w/ a `systemd` service
+- `docker`
 
 ### Docker
 
-Easiest route. Make sure you expose your host network & the appropriate device in `/dev`. **This does not work on `armv6`!**
+**This does not work on `armv6`!** This is the easiest route to deploy.
+
+Make sure you expose your host network & the appropriate device in `/dev`. 
 
 ```bash
 # For local development, start a local kafka and redis instance
@@ -31,71 +46,7 @@ If you want to build a multi-arch image for a Raspi (`armv7` or `arm64`):
 ❯ docker buildx build --platform linux/amd64,linux/arm/v7 -t tiny-telematics:latest .
 ```
 
-### Development / Bare Metal Deploy
-
-If you want to or need to run this on bare metal, you'll need to set up the following for this to work - 
-
-- Client
-  - `Python` w/ `poetry`
-  - `gpsd`
-  - `redis`
-- Server
-  - MariaDB/mySQL
-  - Kafka
-
-#### Client (Raspberry Pi)
-
-```bash
-# Install poetry
-curl -sSL https://raw.githubusercontent.com/python-poetry/poetry/master/get-poetry.py | python -
-# Install an appropriate python version
-curl https://pyenv.run | bash
-echo 'export PYENV_ROOT="$HOME/.pyenv"' >> ~/.bashrc
-echo 'command -v pyenv >/dev/null || export PATH="$PYENV_ROOT/bin:$PATH"' >> ~/.bashrc
-echo 'eval "$(pyenv init -)"' >> ~/.bashrc
-
-pyenv install 3.8.13
-poetry env use ~/.pyenv/versions/3.8.13/bin/python3
-poetry shell
-poetry install
-```
-
-Get `redis` via a package manger or compile from source.
-
-You can then set up a `systemd` service.
-
-Make sure to set `Environment=UBX_DEVICE=G7020-KT` correctly and/or set up a script in `sbin/ubx` for your chipset.
-
-```bash
-sudo cp service/tiny-telematics.service /etc/systemd/system
-sudo systemctl daemon-reload
-sudo systemctl enable tiny-telematics 
-sudo service tiny-telematics start
-```
-
-#### `gpsd`
-
-Please see [sbin/setup_gps.sh](sbin/setup_gps.sh) for the GPS setup. Mileage will vary depending on your distribution. It's currently pretty bad.
-
-##### Version Trouble
-
-The `gps` package is only compatible with `Python 3.8`, because `3.9` removed the `encoding` keyword in `JSONDecoder`:
-
-```bash
-TypeError: JSONDecoder.__init__() got an unexpected keyword argument 'encoding'
-```
-
-This is, however, *not* the fault of the maintainers of `gpsd`, see the issue [here](https://gitlab.com/gpsd/gpsd/-/issues/122), since they do not maintain the `pip` project (or any binaries for that matter). If you can, build it from scratch.
-
-##### ipv6 loopback needs to be enabled
-
-Please see https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=818332
-
-```bash
-sudo sysctl -w net.ipv6.conf.lo.disable_ipv6=0
-```
-
-## Backend
+## Server Setup
 
 ### Flink
 
@@ -109,20 +60,30 @@ See [flink/README.md](flink/README.md)
 
 See [docker-compose](https://developer.confluent.io/quickstart/kafka-docker/) 
 
-## Test
+## Development
+
+Please see [`development_setup.md`](docs/development_setup.md) for details. *tl;dr*: `gpsd`, `poetry`, `python 3.8.13`.
+
+### Run Unit Tests
 
 ```bash
 poetry shell
 poetry run pytest tests -v  
 ```
 
-## Run
+### Run
 
 ```bash
 poetry shell
 python3 tiny_telematics/main.py --config config/dev.yaml
 # or sbin/run_client.sh - will ask for sudo to setup gpsd
 ```
+
+## History
+
+I built this over the years in three different iterations - `Hadoop`, `AWS IoT Greengrass`, and what you're looking at now - for my [blog](https://chollinger.com/blog/). The most recent iteration is what I consider stable and usable and what I daily drive in my truck. The older git tags are mostly to accompany the older blog articles.
+
+![opener](docs/img/opener.png)
 
 ## License
 
