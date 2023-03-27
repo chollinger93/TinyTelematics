@@ -7,7 +7,7 @@ authors = ["Christian Hollinger <christian@chollinger.com>"]
 [tool.poetry.dependencies]
 python = "^3.8"
 gps = "^3.19"
-redis = "^4.3.4"
+redis = "^4.5.3"
 kafka-python = "^2.0.2"
 jsonpickle = "^2.2.0"
 geopy = "^2.2.0"
